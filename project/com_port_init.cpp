@@ -16,8 +16,8 @@ bool Com_port::openPort(const std::string& port, int baudrate) {
     
     closePort();
     LPCTSTR portName = L"COM1";
-    //(LPCTSTR)port.c_str() код ошибки 123 Неправильный синтаксис имени файла, имени каталога или метки тома.
-    cPort = CreateFile(portName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL); // 0 вместо FILE_ATTRIBUTE_NORMAL значит будет синхронная передача
+    //(LPCTSTR)port.c_str() error code 123 Incorrect syntax of the file name, directory name, or volume label.
+    cPort = CreateFile(portName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL); // 0 instead of FILE_ATTRIBUTE_NORMAL means there will be synchronous transmission
     if (cPort == INVALID_HANDLE_VALUE) {
         std::cout << "Comm Port was not open successfully\n";
         DWORD dw = GetLastError();
@@ -42,18 +42,18 @@ bool Com_port::openPort(const std::string& port, int baudrate) {
 
 bool Com_port::installPortSettings(int baudrate) {
     DCB PortDCB = { 0 };
-    PortDCB.DCBlength = sizeof(DCB); // получение default информации струттуры DCB
+    PortDCB.DCBlength = sizeof(DCB); // getting the default information of the DCB structure
     if (!GetCommState(cPort, &PortDCB)) {
         std::cout << "GetCommState failed with error %d.\n " << std::to_string(GetLastError());
         return false;
     }
-    // инициализация параметров порта заданием значений полей структуры DCB
-    PortDCB.BaudRate = DWORD(baudrate); // скорость обмена данными 9600 бод/с    
-    PortDCB.fBinary = TRUE;  // двоичный режим обмена
-    PortDCB.ByteSize = 8;    // размер байта данных 8 бит
-    PortDCB.Parity = NOPARITY;  // 0-4 = no,odd,even,mark,space нет проверки четности
+    // initialization of port parameters by setting values of DCB structure fields
+    PortDCB.BaudRate = DWORD(baudrate); // data exchange rate 9600 baud/s  
+    PortDCB.fBinary = TRUE;  // binary exchange mode
+    PortDCB.ByteSize = 8; 
+    PortDCB.Parity = NOPARITY;  // 0-4 = no,odd,even,mark,space
     PortDCB.StopBits = ONESTOPBIT;
-    //устанавливаем новые параметры
+    
     if (!SetCommState(cPort, &PortDCB)) {
         std::cout << "Unable to configure the serial port\n";
         std::cout << "SetCommState failed with error %d.\n " << std::to_string(GetLastError());
@@ -68,11 +68,11 @@ bool Com_port::installPortTimeouts() {
         std::cout << "GetCommTimeouts failed with error %d.\n " << std::to_string(GetLastError());
         return false;
     }
-    CommTimeouts.ReadIntervalTimeout = 0xFFFFFFFF; // максимальное время между чтением двух символов
+    CommTimeouts.ReadIntervalTimeout = 0xFFFFFFFF; // maximum time between reading two characters
     CommTimeouts.ReadTotalTimeoutMultiplier = 0;
     CommTimeouts.ReadTotalTimeoutConstant = 0;
     CommTimeouts.WriteTotalTimeoutMultiplier = 0;
-    CommTimeouts.WriteTotalTimeoutConstant = 1500; //без задержки при чтении
+    CommTimeouts.WriteTotalTimeoutConstant = 1500; // no delay when reading
 
     if (!SetCommTimeouts(cPort, &CommTimeouts))
     {
