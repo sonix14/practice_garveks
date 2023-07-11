@@ -6,6 +6,8 @@ int main() {
 	Com_port port;
 	if (port.openPort("COM1", 9600)) {
 		std::cout << "yes\n";
+		port.writeData();
+		//port.readData();
 		port.closePort();
 	} else {
 		std::cout << "no\n";

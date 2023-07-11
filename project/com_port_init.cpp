@@ -3,6 +3,8 @@
 #include <windows.h>
 #include <iostream>
 #include <string>
+#include <fstream>
+#include <algorithm>
 
 Com_port::Com_port() {
     cPort = INVALID_HANDLE_VALUE;
@@ -88,4 +90,106 @@ void Com_port::closePort() {
         CloseHandle(cPort);
         cPort = INVALID_HANDLE_VALUE;
     }
+}
+
+void Com_port::readData() {
+   //DWORD iSize; //адресс переменной где хронитс€ информаци€ об количестве прочитанных байт (в случае успешного приема)
+   //char sReceivedChar[2]; //адресс переменной куда нужно записать прочитанные данные
+   //char recBuf[100];
+   //std::string Symb;
+   //sReceivedChar[1] = 0;
+   //do {
+   //    //ReadFile(cPort, &sReceivedChar, 1, &iSize, 0); 	// получаем 1 байт
+   //    // если что-то прин€то, выводим
+   //    if (iSize > 0) {
+   //        strcat(recBuf, sReceivedChar);
+   //    }
+   //} while (iSize > 0);
+    //DWORD iSize;
+    //char sReceivedChar;
+    //while (true)
+    //{
+    //    ReadFile(cPort, &sReceivedChar, 1, &iSize, 0);  // получаем 1 байт
+    //    if (iSize > 0)   // если что-то прин€то, выводим
+    //        std::cout << sReceivedChar;
+    //}
+}
+
+void Com_port::writeData() {
+    if (cPort == INVALID_HANDLE_VALUE) {
+        //
+    }
+    
+    std::string line;
+    DWORD dwBytesWritten;
+    std::ifstream in("hello.txt");
+    calculateChecksum("hello.txt", 0);
+    if (in.is_open())
+    {
+        while (!in.eof())
+        {
+            std::getline(in, line);
+            const int size = line.length();
+            char* char_array = new char[size + 1];
+            char_array[size] = '\0';
+            for (int i = 0; i < size; i++) {
+                char_array[i] = line[i];
+                std::cout << char_array[i];
+            }
+            //std::cout << char_array << "\n";
+            ////strcpy(char_array, line.c_str());
+            //
+            ////const char* char_array = line.c_str();
+            //
+            ////in.getline(data, 50);
+            DWORD dwSize = size + 1;// sizeof(char_array);   // размер этой строки
+            BOOL iRet = WriteFile(cPort, &char_array, dwSize, &dwBytesWritten, NULL);
+            if (dwBytesWritten != dwSize) {
+                CloseHandle(cPort);
+                cPort = INVALID_HANDLE_VALUE;
+                std::cout << "ќшибка при записи в порт\n";
+            }
+            std::cout << dwSize << " Bytes in string. " << dwBytesWritten << " Bytes sended.\n";
+            delete[] char_array;
+        }
+    } else {
+        std::cout << "‘айл не найден\n";
+    }
+    in.close();
+
+    /*
+    DWORD dwBytesWritten; 	// количество переданных байт
+    char data[] = "Hello from C++";  // строка дл€ передачи
+    DWORD dwSize = sizeof(data);   // размер этой строки
+    BOOL iRet = WriteFile(cPort, data, dwSize, &dwBytesWritten, NULL);
+    if (dwBytesWritten != dwSize) {
+        CloseHandle(cPort);
+        cPort = INVALID_HANDLE_VALUE;
+        std::cout << "ќшибка при записи в порт\n";
+    }
+    std::cout << dwSize << " Bytes in string. " << dwBytesWritten << " Bytes sended.\n";
+    */
+}
+
+void Com_port::calculateChecksum(const std::string& file, const unsigned& size) {
+    std::ifstream in(file);
+    unsigned s = 0;
+    in.seekg(0, std::ios::end);
+    s = in.tellg();
+    std::cout << "Rope Weight : " << s << " byte" << "\n";
+    in.close();
+    /*
+    char* mass = new char[size];
+    std::ifstream fs(file, std::ios::in | std::ios::binary);
+    if (!fs) {
+
+    } else {
+        for (int r = 0; r < size-1; r++)
+        {
+            fs.getline(mass[r], len - 1, ch); //—читываем строки в массив
+            cout << "String " << r + 1 << " = " << mass[r] << endl; //¬ыводи строку из массива
+        }
+        fs.close();
+    }
+    */
 }
