@@ -171,25 +171,32 @@ void Com_port::writeData() {
     */
 }
 
-void Com_port::calculateChecksum(const std::string& file, const unsigned& size) {
-    std::ifstream in(file);
-    unsigned s = 0;
-    in.seekg(0, std::ios::end);
-    s = in.tellg();
-    std::cout << "Rope Weight : " << s << " byte" << "\n";
-    in.close();
-    /*
-    char* mass = new char[size];
-    std::ifstream fs(file, std::ios::in | std::ios::binary);
-    if (!fs) {
+unsigned Com_port::calculateChecksum(char* mass, unsigned long count) {
+    //int i;
+    //unsigned crc = 0xFFFF;
+    //
+    //while (count--)
+    //{
+    //    crc ^= *mass++;
+    //    for (i = 0; i < 8; ++i)
+    //        if (crc & 0x01) { crc >>= 1; crc ^= 0xA001; }
+    //        else crc >>= 1;
+    //}
+    //return crc;
 
-    } else {
-        for (int r = 0; r < size-1; r++)
-        {
-            fs.getline(mass[r], len - 1, ch); //Считываем строки в массив
-            cout << "String " << r + 1 << " = " << mass[r] << endl; //Выводи строку из массива
-        }
-        fs.close();
-    }
-    */
+
+    //инициализируем таблицу расчёта Crc32
+    unsigned long crc_table[256];//массив 32 бита = 4 байтам
+    unsigned long crc;//переменная 32 бита = 4 байтам
+    for (int i = 0; i < 256; i++)//инициализируем цикл массива
+    {
+        crc = i;
+        for (int j = 0; j < 8; j++)//цикл перебора полинома
+            crc = crc & 1 ? (crc >> 1) ^ 0xEDB88320UL : crc >> 1;
+        crc_table[i] = crc;
+    };
+    crc = 0xFFFFFFFFUL;
+    while (count--)// проверка условия продолжения
+        crc = crc_table[(crc ^ *mass++) & 0xFF] ^ (crc >> 8);
+    return crc ^ 0xFFFFFFFFUL; //конец функции расчёта Crc32
 }
