@@ -93,6 +93,110 @@ void Com_port::closePort() {
 }
 
 void Com_port::readData() {
+    int counter = 0;
+    std::vector<char> buffer;
+    int fullSize = 0;
+    long int fullChecksum = 0;
+    long int checksum = 0;
+    long int trialChecksum = 0;
+    const int READ_TIME = 100;
+    OVERLAPPED sync = { 0 };
+    int result = 0;
+    unsigned long wait = 0, read = 0, state = 0;
+    char dst[1024] = { 0 }; //unsigned
+    unsigned long size = sizeof(dst);
+    // Создаем объект синхронизации 
+    sync.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+    // Устанавливаем маску на события порта 
+    if (SetCommMask(cPort, EV_RXCHAR)) {
+        // Связываем порт и объект синхронизации 
+        WaitCommEvent(cPort, &state, &sync);
+        // Начинаем ожидание данных 
+        wait = WaitForSingleObject(sync.hEvent, READ_TIME);
+        // Данные получены  
+        if (wait == WAIT_OBJECT_0) {
+            ReadFile(cPort, dst, size, &read, &sync); //size of file
+            fullSize = std::atoi(dst);
+            //fullSize = std::stoi(std::string(buffer));
+            if (fullSize <= 0) {
+                std::cout << "Uncorrect size\n";
+            }
+            memset(dst, 0, 1024);
+            wait = 0;
+            sync.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+            wait = WaitForSingleObject(sync.hEvent, READ_TIME);
+            if (wait == WAIT_OBJECT_0) {
+                ReadFile(cPort, dst, size, &read, &sync); //full file check sum
+                fullChecksum = std::atoi(dst);
+                if (fullChecksum <= 0) {
+                    std::cout << "Uncorrect checksum\n";
+                }
+                memset(dst, 0, 1024);
+                //дать ответ о готовности принять данные
+                while (trialChecksum != fullChecksum) {
+                    if (counter == MAX_ERROR) {
+                        std::cout << "Too much tries for one fragment!\n";
+                        //close
+                        break;
+                    }
+                    sync.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+                    wait = WaitForSingleObject(sync.hEvent, READ_TIME);
+                    if (wait == WAIT_OBJECT_0) {
+                        ReadFile(cPort, dst, size, &read, &sync); //fragment    
+                        sync.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+                        wait = WaitForSingleObject(sync.hEvent, READ_TIME);
+                        if (wait == WAIT_OBJECT_0) {
+                            ReadFile(cPort, dst, size, &read, &sync); // checksum
+                            checksum = std::atoi(dst);
+                            //memset(dst, 0, 1024);
+                        }
+                        if (calculateChecksum(dst, size) != checksum) {
+                            //uncorrect fragment
+                            std::cout << "The fragment was not accepted successfully! Try again\n";
+                            counter++;
+                            continue;
+                        }
+                        else {
+                            std::cout << "The fragment was accepted successfully\n";
+                            for (int i : dst) {
+                                buffer.push_back(dst[i]);
+                            }
+                            counter = 0;
+                        }
+                    }
+                    memset(dst, 0, 1024);
+                    int buffSize = buffer.size();
+                    char* array = new char[buffSize];
+                    for (int i = 0; i < buffSize; i++) {
+                        array[i] = buffer[i];
+                    }
+                    trialChecksum = calculateChecksum(array, buffSize);
+                    delete[] array;
+                    if (trialChecksum > fullChecksum) {
+                        //close
+                        std::cout << "Too much fragments\n";
+                        break;
+                    }
+                    /*
+                    if (wait == WAIT_OBJECT_0)
+                        if (GetOverlappedResult(cPort, &sync, &read, FALSE)) {
+                            result = read;
+                            std::cout << "Size of fragment: " << result << '\n';
+                        }
+                        */
+                }
+                if (trialChecksum == fullChecksum) {
+                    //write file into the folder
+                    std::cout << "The file was accepted successfully!\n";
+                    //close
+                }
+            }
+        }
+    }
+    //std::cout << "Received bytes: " << result;
+    //std::cout << "\nFile: " << dst;
+    CloseHandle(sync.hEvent);
    //DWORD iSize; //адресс переменной где хронится информация об количестве прочитанных байт (в случае успешного приема)
    //char sReceivedChar[2]; //адресс переменной куда нужно записать прочитанные данные
    //char recBuf[100];

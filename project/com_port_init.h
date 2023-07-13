@@ -20,6 +20,7 @@ private:
     void calculateChecksum(const std::string& file, const unsigned& size);
 
     HANDLE cPort;
+    const int MAX_ERROR = 3; ///
 };
 
 #endif
