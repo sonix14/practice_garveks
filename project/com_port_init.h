@@ -21,6 +21,8 @@ private:
     bool installPortTimeouts();
     unsigned long calculateChecksumCRC32(char* mass, unsigned long count);
 
+    HANDLE cPort;
+    const int MAX_ERROR = 3; ///
 };
 
 #endif
