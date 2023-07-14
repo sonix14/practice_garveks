@@ -5,6 +5,7 @@
 #include <string>
 #include <fstream>
 #include <algorithm>
+#include <vector>
 
 Com_port::Com_port() {
     cPort = INVALID_HANDLE_VALUE;
@@ -15,9 +16,9 @@ Com_port::~Com_port() {
 }
 
 bool Com_port::openPort(const std::string& port, int baudrate) {
-    
+
     closePort();
-    LPCTSTR portName = L"COM1";
+    LPCTSTR portName = L"COM1"; //!!!!!!!!!!
     //(LPCTSTR)port.c_str() error code 123 Incorrect syntax of the file name, directory name, or volume label.
     cPort = CreateFile(portName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL); // 0 instead of FILE_ATTRIBUTE_NORMAL means there will be synchronous transmission
     if (cPort == INVALID_HANDLE_VALUE) {
@@ -52,10 +53,10 @@ bool Com_port::installPortSettings(int baudrate) {
     // initialization of port parameters by setting values of DCB structure fields
     PortDCB.BaudRate = DWORD(baudrate); // data exchange rate 9600 baud/s  
     PortDCB.fBinary = TRUE;  // binary exchange mode
-    PortDCB.ByteSize = 8; 
+    PortDCB.ByteSize = 8;
     PortDCB.Parity = NOPARITY;  // 0-4 = no,odd,even,mark,space
     PortDCB.StopBits = ONESTOPBIT;
-    
+
     if (!SetCommState(cPort, &PortDCB)) {
         std::cout << "Unable to configure the serial port\n";
         std::cout << "SetCommState failed with error %d.\n " << std::to_string(GetLastError());
@@ -95,10 +96,11 @@ void Com_port::closePort() {
 
 void Com_port::readData() {
     int counter = 0;
+    bool flag = true;
     std::vector<char> buffer;
     int fullSize = 0;
     long int fullChecksum = 0;
-    long int checksum = 0;
+    long int checksum = 1;
     long int trialChecksum = 0;
     const int READ_TIME = 100;
     OVERLAPPED sync = { 0 };
@@ -106,193 +108,213 @@ void Com_port::readData() {
     unsigned long wait = 0, read = 0, state = 0;
     char dst[1024] = { 0 }; //unsigned
     unsigned long size = sizeof(dst);
-    // Создаем объект синхронизации 
-    sync.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    sync.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL); // Creating a synchronization object
 
-    // Устанавливаем маску на события порта 
-    if (SetCommMask(cPort, EV_RXCHAR)) {
-        // Связываем порт и объект синхронизации 
-        WaitCommEvent(cPort, &state, &sync);
-        // Начинаем ожидание данных 
-        wait = WaitForSingleObject(sync.hEvent, READ_TIME);
-        // Данные получены  
-        if (wait == WAIT_OBJECT_0) {
-            ReadFile(cPort, dst, size, &read, &sync); //size of file
-            fullSize = std::atoi(dst);
-            //fullSize = std::stoi(std::string(buffer));
-            if (fullSize <= 0) {
-                std::cout << "Uncorrect size\n";
-            }
-            memset(dst, 0, 1024);
-            wait = 0;
-            sync.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-            wait = WaitForSingleObject(sync.hEvent, READ_TIME);
-            if (wait == WAIT_OBJECT_0) {
-                ReadFile(cPort, dst, size, &read, &sync); //full file check sum
-                fullChecksum = std::atoi(dst);
-                if (fullChecksum <= 0) {
-                    std::cout << "Uncorrect checksum\n";
-                }
-                memset(dst, 0, 1024);
-                //дать ответ о готовности принять данные
-                while (trialChecksum != fullChecksum) {
-                    if (counter == MAX_ERROR) {
-                        std::cout << "Too much tries for one fragment!\n";
-                        //close
-                        break;
+    while (true) {
+        if (SetCommMask(cPort, EV_RXCHAR)) { // Setting the mask for port events
+            if (WaitCommEvent(cPort, &state, &sync)) { // Linking the port and the synchronization object
+                wait = WaitForSingleObject(sync.hEvent, INFINITE);// Start waiting for data
+                if (wait == WAIT_OBJECT_0) { // Data received
+                    if (fullSize == 0) {
+                        ReadFile(cPort, dst, size, &read, 0); //size of file
+                        fullSize = std::atoi(dst);
+                        //fullSize = std::stoi(std::string(buffer));
+                        if (fullSize <= 0) {
+                            std::cout << "Uncorrect size\n";
+                        }
+                        else
+                            std::cout << "Accepted size\n";
+                        memset(dst, 0, 1024);
                     }
-                    sync.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-                    wait = WaitForSingleObject(sync.hEvent, READ_TIME);
-                    if (wait == WAIT_OBJECT_0) {
-                        ReadFile(cPort, dst, size, &read, &sync); //fragment    
-                        sync.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-                        wait = WaitForSingleObject(sync.hEvent, READ_TIME);
-                        if (wait == WAIT_OBJECT_0) {
-                            ReadFile(cPort, dst, size, &read, &sync); // checksum
-                            checksum = std::atoi(dst);
-                            //memset(dst, 0, 1024);
+                    else if (fullSize != 0 && fullChecksum == 0) {
+                        ReadFile(cPort, dst, size, &read, &sync); //full file check sum  
+                        fullChecksum = std::atoi(dst);
+                        if (fullChecksum <= 0) {
+                            std::cout << "Uncorrect checksum\n";
                         }
-                        if (calculateChecksum(dst, size) != checksum) {
-                            //uncorrect fragment
-                            std::cout << "The fragment was not accepted successfully! Try again\n";
-                            counter++;
-                            continue;
+                        else
+                            std::cout << "Accepted checksum\n";
+                        memset(dst, 0, 1024);
+                    }
+                    else {
+                        //give an answer about readiness to accept data
+                        std::cout << "Ready to accept data\n";
+                        if (trialChecksum > fullChecksum) {
+                            //close
+                            std::cout << "Too much fragments\n";
+                            break;
                         }
-                        else {
-                            std::cout << "The fragment was accepted successfully\n";
-                            for (int i : dst) {
-                                buffer.push_back(dst[i]);
+                        else if (trialChecksum < fullChecksum) {
+                            char temp[1024] = { 0 };
+                            if (counter == MAX_ERROR) {
+                                std::cout << "Too much tries for one fragment!\n";
+                                //close
+                                counter = 0;
+                                break;
                             }
-                            counter = 0;
+                            if (flag == true) {
+                                ReadFile(cPort, temp, size, &read, &sync); //fragment 
+                                flag = false;
+                            }
+                            else {
+                                ReadFile(cPort, dst, size, &read, &sync); // checksum
+                                checksum = std::atoi(dst);
+                                if (calculateChecksumCRC16(temp, size) != checksum) {
+                                    //uncorrect fragment
+                                    std::cout << "The fragment was not accepted successfully! Try again\n";
+                                    counter++;
+                                    flag = true;
+                                    continue;
+                                }
+                                else {
+                                    std::cout << "The fragment was accepted successfully\n";
+                                    for (int i : temp) {
+                                        buffer.push_back(temp[i]);
+                                    }
+                                    int buffSize = buffer.size();
+                                    char* array = new char[buffSize];
+                                    for (int i = 0; i < buffSize; i++) {
+                                        array[i] = buffer[i];
+                                    }
+                                    trialChecksum = calculateChecksumCRC16(array, buffSize);
+                                    delete[] array;
+                                    counter = 0;
+                                }
+                                flag = true;
+                                //memset(dst, 0, 1024);
+                            }
+                            memset(dst, 0, 1024);
                         }
-                    }
-                    memset(dst, 0, 1024);
-                    int buffSize = buffer.size();
-                    char* array = new char[buffSize];
-                    for (int i = 0; i < buffSize; i++) {
-                        array[i] = buffer[i];
-                    }
-                    trialChecksum = calculateChecksum(array, buffSize);
-                    delete[] array;
-                    if (trialChecksum > fullChecksum) {
-                        //close
-                        std::cout << "Too much fragments\n";
-                        break;
-                    }
-                    /*
-                    if (wait == WAIT_OBJECT_0)
-                        if (GetOverlappedResult(cPort, &sync, &read, FALSE)) {
-                            result = read;
-                            std::cout << "Size of fragment: " << result << '\n';
+                        else if (trialChecksum == fullChecksum) {
+                            //write file into the folder
+                            std::cout << "The file was accepted successfully!\n";
+                            //close
+                        }
+                        /*
+                        if (wait == WAIT_OBJECT_0)
+                            if (GetOverlappedResult(cPort, &sync, &read, FALSE)) {
+                                result = read;
+                                std::cout << "Size of fragment: " << result << '\n';
                         }
                         */
-                }
-                if (trialChecksum == fullChecksum) {
-                    //write file into the folder
-                    std::cout << "The file was accepted successfully!\n";
-                    //close
+                    }
                 }
             }
         }
+        ResetEvent(sync.hEvent);
     }
     //std::cout << "Received bytes: " << result;
     //std::cout << "\nFile: " << dst;
     CloseHandle(sync.hEvent);
-   //DWORD iSize; //адресс переменной где хронится информация об количестве прочитанных байт (в случае успешного приема)
-   //char sReceivedChar[2]; //адресс переменной куда нужно записать прочитанные данные
-   //char recBuf[100];
-   //std::string Symb;
-   //sReceivedChar[1] = 0;
-   //do {
-   //    //ReadFile(cPort, &sReceivedChar, 1, &iSize, 0); 	// получаем 1 байт
-   //    // если что-то принято, выводим
-   //    if (iSize > 0) {
-   //        strcat(recBuf, sReceivedChar);
-   //    }
-   //} while (iSize > 0);
-    //DWORD iSize;
-    //char sReceivedChar;
-    //while (true)
-    //{
-    //    ReadFile(cPort, &sReceivedChar, 1, &iSize, 0);  // получаем 1 байт
-    //    if (iSize > 0)   // если что-то принято, выводим
-    //        std::cout << sReceivedChar;
-    //}
+
+//   //DWORD iSize; 
+//   //char sReceivedChar[2]; 
+//   //char recBuf[100];
+//   //std::string Symb;
+//   //sReceivedChar[1] = 0;
+//   //do {
+//   //    //ReadFile(cPort, &sReceivedChar, 1, &iSize, 0); 	
+//   //    
+//   //    if (iSize > 0) {
+//   //        strcat(recBuf, sReceivedChar);
+//   //    }
+//   //} while (iSize > 0);
+//    //DWORD iSize;
+//    //char sReceivedChar;
+//    //while (true)
+//    //{
+//    //    ReadFile(cPort, &sReceivedChar, 1, &iSize, 0);  
+//    //    if (iSize > 0)   
+//    //        std::cout << sReceivedChar;
+//    //}
 }
 
 void Com_port::writeData(const std::string& file) {
-    
-    if (cPort == INVALID_HANDLE_VALUE) {
-        //
+
+    DWORD dwBytesWritten;
+    std::ifstream in(file, std::ifstream::ate | std::ifstream::binary);
+    unsigned long file_size = in.tellg();
+    std::cout << "Rope Weight : " << file_size << " byte" << "\n";
+    DWORD dwSize = sizeof(file_size);
+    BOOL iRet = WriteFile(cPort, &file_size, dwSize, &dwBytesWritten, NULL);
+    if (dwBytesWritten != dwSize) {
+        CloseHandle(cPort);
+        cPort = INVALID_HANDLE_VALUE;
+        std::cout << "Error writing file size to port\n";
     }
 
-    std::ifstream in(file, std::ifstream::ate | std::ifstream::binary);
-    unsigned long file_size =  in.tellg();
-    std::cout << "\nRope Weight : " << file_size << " byte" << "\n";
-
+    const char file_name[10] = "hello.txt";//!!!!!!!!!!!!
     FILE* read_all_file;
-    fopen_s(&read_all_file, "hello.txt", "r"); //!!!!!!!!!!!!
-    int all_file_size = file_size;
-    char* mass_all_file = new char[all_file_size];
+    fopen_s(&read_all_file, file_name, "r");
+    unsigned long all_file_size = file_size;
+    unsigned char* mass_all_file = new unsigned char[all_file_size];
     if (read_all_file) {
         unsigned long count = fread(mass_all_file, sizeof mass_all_file[0], file_size, read_all_file);
-        //printf("read %zu elements out of %d\n", count, file_size);
-        //printf(mass_all_file);
         fclose(read_all_file);
-        std::cout << "\n";
-        
+
         unsigned long check_sum = calculateChecksumCRC32(mass_all_file, count);
-        std::cout << "CRC = " << check_sum << "\n";
-
-        //std::ofstream out("res.txt");
-        //for (int i = 0; i < count; i++) {
-        //    out << mass_all_file[i];
-        //}
-        //out.close();
-        //std::ifstream in("res.txt", std::ifstream::ate | std::ifstream::binary);
-        //unsigned long int file_size = in.tellg();
-        //std::cout << "\nRope Weight : " << file_size << " byte" << "\n";
-
-    } else {
+        std::cout << "CRC32 = " << check_sum << "\n\n";
+        dwSize = sizeof(check_sum);
+        iRet = WriteFile(cPort, &check_sum, dwSize, &dwBytesWritten, NULL);
+        if (dwBytesWritten != dwSize) {
+            CloseHandle(cPort);
+            cPort = INVALID_HANDLE_VALUE;
+            std::cout << "Error writing check sum to port\n";
+        }
+    }
+    else {
         std::cout << "File not found\n";
     }
 
-    DWORD dwBytesWritten;
-    unsigned long int buff = file_size;
+    unsigned long buff = file_size;
     FILE* fp;
-    fopen_s(&fp, "hello.txt", "r");
+    fopen_s(&fp, file_name, "r");
     const int fragment_size = 10;
-    char mass_fragment[fragment_size];
+    unsigned char mass_fragment[fragment_size];
     if (fp) {
         while (buff > fragment_size) {
             size_t count = fread(mass_fragment, sizeof mass_fragment[0], fragment_size, fp);
             buff -= fragment_size;
 
-            DWORD dwSize = sizeof(mass_fragment);
-            BOOL iRet = WriteFile(cPort, &mass_fragment, dwSize, &dwBytesWritten, NULL);
+            dwSize = sizeof(mass_fragment);
+            iRet = WriteFile(cPort, &mass_fragment, dwSize, &dwBytesWritten, NULL);
             if (dwBytesWritten != dwSize) {
                 CloseHandle(cPort);
                 cPort = INVALID_HANDLE_VALUE;
                 std::cout << "Error writing to port\n";
             }
+            unsigned short check_sum = calculateChecksumCRC16(mass_fragment, fragment_size);
+            std::cout << "CRC16 = " << check_sum << "\n";
+            dwSize = sizeof(check_sum);
+            iRet = WriteFile(cPort, &check_sum, dwSize, &dwBytesWritten, NULL);
+            if (dwBytesWritten != dwSize) {
+                CloseHandle(cPort);
+                cPort = INVALID_HANDLE_VALUE;
+                std::cout << "Error writing check sum fragment to port\n";
+            }
         }
-        int endPart_fragment_size = buff;
-        char* endPart_mass_fragment = new char[endPart_fragment_size];
+        unsigned long endPart_fragment_size = buff;
+        unsigned char* endPart_mass_fragment = new unsigned char[endPart_fragment_size];
         if (buff > 0) {
             size_t count = fread(endPart_mass_fragment, sizeof endPart_mass_fragment[0], buff, fp);
-            //endPart_mass_fragment[buff - 1] = '\n';
             printf("read %zu elements out of %d\n", count, buff);
-            //printf(endPart_mass_fragment);
         }
-        DWORD dwSize = sizeof(endPart_mass_fragment);
-        BOOL iRet = WriteFile(cPort, &endPart_mass_fragment, dwSize, &dwBytesWritten, NULL);
+        dwSize = sizeof(endPart_mass_fragment);
+        iRet = WriteFile(cPort, &endPart_mass_fragment, dwSize, &dwBytesWritten, NULL);
         if (dwBytesWritten != dwSize) {
             CloseHandle(cPort);
             cPort = INVALID_HANDLE_VALUE;
             std::cout << "Error writing to port\n";
         }
-        std::cout << dwSize << " Bytes in string. " << dwBytesWritten << " Bytes sended.\n\n";
-
+        unsigned short check_sum = calculateChecksumCRC16(endPart_mass_fragment, endPart_fragment_size);
+        std::cout << "CRC16 = " << check_sum << "\n\n";
+        dwSize = sizeof(check_sum);
+        iRet = WriteFile(cPort, &check_sum, dwSize, &dwBytesWritten, NULL);
+        if (dwBytesWritten != dwSize) {
+            CloseHandle(cPort);
+            cPort = INVALID_HANDLE_VALUE;
+            std::cout << "Error writing check sum fragment to port\n";
+        }
         delete[] endPart_mass_fragment;
         delete[] mass_all_file;
         fclose(fp);
@@ -302,19 +324,37 @@ void Com_port::writeData(const std::string& file) {
     }
 }
 
-unsigned long Com_port::calculateChecksumCRC32(char* mass, unsigned long count) {
-    //инициализируем таблицу расчёта Crc32
-    unsigned long crc_table[256];//массив 32 бита = 4 байтам
-    unsigned long crc;//переменная 32 бита = 4 байтам
-    for (int i = 0; i < 256; i++)//инициализируем цикл массива
+/*We describe the Crc32 calculation function
+using a polynomial EDB88320UL=
+x^32 + x^26 + x^23 + x^22 + x^16 + x^12 + x^11
++ x^10 + x^8 + x^7 + x^5 + x^4 + x^2 + x + 1*/
+unsigned long Com_port::calculateChecksumCRC32(unsigned char* mass, unsigned long count) {
+    //initialize the Crc32 calculation table
+    unsigned long crc_table[256];//mass 32 bit = 4 byte
+    unsigned long crc;//variable 32 bit = 4 byte
+    for (int i = 0; i < 256; i++)//initialize the array loop
     {
         crc = i;
-        for (int j = 0; j < 8; j++)//цикл перебора полинома
+        for (int j = 0; j < 8; j++)//polynomial iteration cycle
             crc = crc & 1 ? (crc >> 1) ^ 0xEDB88320UL : crc >> 1;
         crc_table[i] = crc;
     };
     crc = 0xFFFFFFFFUL;
-    while (count--)// проверка условия продолжения
+    while (count--)// checking the continuation condition
         crc = crc_table[(crc ^ *mass++) & 0xFF] ^ (crc >> 8);
-    return crc^ 0xFFFFFFFFUL; //конец функции расчёта Crc32
+    return crc ^ 0xFFFFFFFFUL;
+}
+
+/*We describe the Crc16 standard CCITT calculation function
+using the polynomial 1021=x^16+x^12 +x^5+1*/
+unsigned short Com_port::calculateChecksumCRC16(unsigned char* mass, unsigned long count) {
+    unsigned short crc = 0xFFFF;//variable 16 bit = 2 byte
+    unsigned char i; //variable 8 bit = 1 byte
+    while (count--)// checking the continuation condition
+    {
+        crc ^= *mass++ << 8;
+        for (i = 0; i < 8; i++)//polynomial iteration cycle
+            crc = crc & 0x8000 ? (crc << 1) ^ 0x1021 : crc << 1;
+    }
+    return crc;
 }
