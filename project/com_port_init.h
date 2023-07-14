@@ -15,13 +15,13 @@ struct Com_port {
     void closePort();
 
     virtual void writeData(const std::string& file);
-    //virtual void readData();
+    virtual void readData();
 
 private:
     bool installPortSettings(int baudrate);
     bool installPortTimeouts();
     unsigned long calculateChecksumCRC32(unsigned char* mass, unsigned long count);
-    unsigned short calculateChecksumCRC16(unsigned char* mass, unsigned long count);
+    unsigned short calculateChecksumCRC16( char* mass, unsigned long count);
 };
 
 #endif

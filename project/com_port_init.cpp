@@ -16,7 +16,7 @@ Com_port::~Com_port() {
 }
 
 bool Com_port::openPort(const std::string& port, int baudrate) {
-
+    
     closePort();
     LPCTSTR portName = L"COM1"; //!!!!!!!!!!
     //(LPCTSTR)port.c_str() error code 123 Incorrect syntax of the file name, directory name, or volume label.
@@ -53,10 +53,10 @@ bool Com_port::installPortSettings(int baudrate) {
     // initialization of port parameters by setting values of DCB structure fields
     PortDCB.BaudRate = DWORD(baudrate); // data exchange rate 9600 baud/s  
     PortDCB.fBinary = TRUE;  // binary exchange mode
-    PortDCB.ByteSize = 8;
+    PortDCB.ByteSize = 8; 
     PortDCB.Parity = NOPARITY;  // 0-4 = no,odd,even,mark,space
     PortDCB.StopBits = ONESTOPBIT;
-
+    
     if (!SetCommState(cPort, &PortDCB)) {
         std::cout << "Unable to configure the serial port\n";
         std::cout << "SetCommState failed with error %d.\n " << std::to_string(GetLastError());
@@ -208,17 +208,16 @@ void Com_port::readData() {
     CloseHandle(sync.hEvent);
 }
 
+
 void Com_port::writeData(const std::string& file) {
 
     DWORD dwBytesWritten;
     std::ifstream in(file, std::ifstream::ate | std::ifstream::binary);
-
-    unsigned long file_size = in.tellg();
-
+    unsigned long file_size =  in.tellg();
     std::cout << "Rope Weight : " << file_size << " byte" << "\n";
     DWORD dwSize = sizeof(file_size);
     BOOL iRet = WriteFile(cPort, &file_size, dwSize, &dwBytesWritten, NULL);
-    if (dwBytesWritten != dwSize) {
+    if (!iRet || dwBytesWritten != dwSize) {
         CloseHandle(cPort);
         cPort = INVALID_HANDLE_VALUE;
         std::cout << "Error writing file size to port\n";
@@ -232,12 +231,12 @@ void Com_port::writeData(const std::string& file) {
     if (read_all_file) {
         unsigned long count = fread(mass_all_file, sizeof mass_all_file[0], file_size, read_all_file);
         fclose(read_all_file);
-
+        
         unsigned long check_sum = calculateChecksumCRC32(mass_all_file, count);
         std::cout << "CRC32 = " << check_sum << "\n\n";
         dwSize = sizeof(check_sum);
         iRet = WriteFile(cPort, &check_sum, dwSize, &dwBytesWritten, NULL);
-        if (dwBytesWritten != dwSize) {
+        if (!iRet || dwBytesWritten != dwSize) {
             CloseHandle(cPort);
             cPort = INVALID_HANDLE_VALUE;
             std::cout << "Error writing check sum to port\n";
@@ -250,7 +249,7 @@ void Com_port::writeData(const std::string& file) {
     FILE* fp;
     fopen_s(&fp, file_name, "r");
     const int fragment_size = 10;
-    unsigned char mass_fragment[fragment_size];
+    char mass_fragment[fragment_size];
     if (fp) {
         while (buff > fragment_size) {
             size_t count = fread(mass_fragment, sizeof mass_fragment[0], fragment_size, fp);
@@ -258,7 +257,7 @@ void Com_port::writeData(const std::string& file) {
 
             dwSize = sizeof(mass_fragment);
             iRet = WriteFile(cPort, &mass_fragment, dwSize, &dwBytesWritten, NULL);
-            if (dwBytesWritten != dwSize) {
+            if (!iRet || dwBytesWritten != dwSize) {
                 CloseHandle(cPort);
                 cPort = INVALID_HANDLE_VALUE;
                 std::cout << "Error writing to port\n";
@@ -267,21 +266,21 @@ void Com_port::writeData(const std::string& file) {
             std::cout << "CRC16 = " << check_sum << "\n";
             dwSize = sizeof(check_sum);
             iRet = WriteFile(cPort, &check_sum, dwSize, &dwBytesWritten, NULL);
-            if (dwBytesWritten != dwSize) {
+            if (!iRet || dwBytesWritten != dwSize) {
                 CloseHandle(cPort);
                 cPort = INVALID_HANDLE_VALUE;
                 std::cout << "Error writing check sum fragment to port\n";
             }
         }
         unsigned long endPart_fragment_size = buff;
-        unsigned char* endPart_mass_fragment = new unsigned char[endPart_fragment_size];
+        char* endPart_mass_fragment = new char[endPart_fragment_size];
         if (buff > 0) {
             size_t count = fread(endPart_mass_fragment, sizeof endPart_mass_fragment[0], buff, fp);
             printf("read %zu elements out of %d\n", count, buff);
         }
         dwSize = sizeof(endPart_mass_fragment);
         iRet = WriteFile(cPort, &endPart_mass_fragment, dwSize, &dwBytesWritten, NULL);
-        if (dwBytesWritten != dwSize) {
+        if (!iRet || dwBytesWritten != dwSize) {
             CloseHandle(cPort);
             cPort = INVALID_HANDLE_VALUE;
             std::cout << "Error writing to port\n";
@@ -290,7 +289,7 @@ void Com_port::writeData(const std::string& file) {
         std::cout << "CRC16 = " << check_sum << "\n\n";
         dwSize = sizeof(check_sum);
         iRet = WriteFile(cPort, &check_sum, dwSize, &dwBytesWritten, NULL);
-        if (dwBytesWritten != dwSize) {
+        if (!iRet || dwBytesWritten != dwSize) {
             CloseHandle(cPort);
             cPort = INVALID_HANDLE_VALUE;
             std::cout << "Error writing check sum fragment to port\n";
@@ -322,14 +321,12 @@ unsigned long Com_port::calculateChecksumCRC32(unsigned char* mass, unsigned lon
     crc = 0xFFFFFFFFUL;
     while (count--)// checking the continuation condition
         crc = crc_table[(crc ^ *mass++) & 0xFF] ^ (crc >> 8);
-
     return crc^ 0xFFFFFFFFUL;
-
 }
 
 /*We describe the Crc16 standard CCITT calculation function
 using the polynomial 1021=x^16+x^12 +x^5+1*/
-unsigned short Com_port::calculateChecksumCRC16(unsigned char* mass, unsigned long count) {
+unsigned short Com_port::calculateChecksumCRC16(char* mass, unsigned long count) {
     unsigned short crc = 0xFFFF;//variable 16 bit = 2 byte
     unsigned char i; //variable 8 bit = 1 byte
     while (count--)// checking the continuation condition
