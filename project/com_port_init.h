@@ -6,7 +6,8 @@
 
 struct Com_port {
     HANDLE cPort;
-    
+    const int MAX_ERROR = 3;
+
     Com_port();
     virtual ~Com_port();
 
@@ -14,15 +15,13 @@ struct Com_port {
     void closePort();
 
     virtual void writeData(const std::string& file);
-    virtual void readData();
+    //virtual void readData();
 
 private:
     bool installPortSettings(int baudrate);
     bool installPortTimeouts();
-    unsigned long calculateChecksumCRC32(char* mass, unsigned long count);
-
-    HANDLE cPort;
-    const int MAX_ERROR = 3; ///
+    unsigned long calculateChecksumCRC32(unsigned char* mass, unsigned long count);
+    unsigned short calculateChecksumCRC16(unsigned char* mass, unsigned long count);
 };
 
 #endif

@@ -1,7 +1,6 @@
 #include "COM_PORT_INIT.h"
 #include <stdio.h>
 #include <iostream>
-//#pragma comment(lib, "libname.lib")
 
 int main() {
 	Com_port port;

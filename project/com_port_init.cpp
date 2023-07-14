@@ -206,34 +206,15 @@ void Com_port::readData() {
     //std::cout << "Received bytes: " << result;
     //std::cout << "\nFile: " << dst;
     CloseHandle(sync.hEvent);
-
-//   //DWORD iSize; 
-//   //char sReceivedChar[2]; 
-//   //char recBuf[100];
-//   //std::string Symb;
-//   //sReceivedChar[1] = 0;
-//   //do {
-//   //    //ReadFile(cPort, &sReceivedChar, 1, &iSize, 0); 	
-//   //    
-//   //    if (iSize > 0) {
-//   //        strcat(recBuf, sReceivedChar);
-//   //    }
-//   //} while (iSize > 0);
-//    //DWORD iSize;
-//    //char sReceivedChar;
-//    //while (true)
-//    //{
-//    //    ReadFile(cPort, &sReceivedChar, 1, &iSize, 0);  
-//    //    if (iSize > 0)   
-//    //        std::cout << sReceivedChar;
-//    //}
 }
 
 void Com_port::writeData(const std::string& file) {
 
     DWORD dwBytesWritten;
     std::ifstream in(file, std::ifstream::ate | std::ifstream::binary);
+
     unsigned long file_size = in.tellg();
+
     std::cout << "Rope Weight : " << file_size << " byte" << "\n";
     DWORD dwSize = sizeof(file_size);
     BOOL iRet = WriteFile(cPort, &file_size, dwSize, &dwBytesWritten, NULL);
@@ -261,8 +242,7 @@ void Com_port::writeData(const std::string& file) {
             cPort = INVALID_HANDLE_VALUE;
             std::cout << "Error writing check sum to port\n";
         }
-    }
-    else {
+    } else {
         std::cout << "File not found\n";
     }
 
@@ -342,7 +322,9 @@ unsigned long Com_port::calculateChecksumCRC32(unsigned char* mass, unsigned lon
     crc = 0xFFFFFFFFUL;
     while (count--)// checking the continuation condition
         crc = crc_table[(crc ^ *mass++) & 0xFF] ^ (crc >> 8);
-    return crc ^ 0xFFFFFFFFUL;
+
+    return crc^ 0xFFFFFFFFUL;
+
 }
 
 /*We describe the Crc16 standard CCITT calculation function
