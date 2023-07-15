@@ -15,11 +15,25 @@ Com_port::~Com_port() {
     closePort();
 }
 
+wchar_t* Com_port::convertToLPCTSTR(const std::string& str) {
+    char* chars = new char[str.length() + 1];
+    str.copy(chars, str.length());
+    chars[str.length()] = '\0';
+
+    size_t size = strlen(chars) + 1;
+    wchar_t* wchars = new wchar_t[size];
+    size_t outSize;
+    mbstowcs_s(&outSize, wchars, size, chars, size - 1);
+    //std::wstring wstr(wchars);
+
+    return wchars;
+}
+
 bool Com_port::openPort(const std::string& port, int baudrate) {
     
     closePort();
-    LPCTSTR portName = L"COM1"; //!!!!!!!!!!
-    //(LPCTSTR)port.c_str() error code 123 Incorrect syntax of the file name, directory name, or volume label.
+    wchar_t* wPort = convertToLPCTSTR(port);
+    LPCTSTR portName = wPort;  // L"COM1";
     cPort = CreateFile(portName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL); // 0 instead of FILE_ATTRIBUTE_NORMAL means there will be synchronous transmission
     if (cPort == INVALID_HANDLE_VALUE) {
         std::cout << "Comm Port was not open successfully\n";
