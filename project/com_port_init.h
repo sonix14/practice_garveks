@@ -20,8 +20,11 @@ struct Com_port {
 private:
     bool installPortSettings(int baudrate);
     bool installPortTimeouts();
+
     unsigned long calculateChecksumCRC32(unsigned char* mass, unsigned long count);
     unsigned short calculateChecksumCRC16( char* mass, unsigned long count);
+
+    wchar_t* convertToLPCTSTR(const std::string& str);
 };
 
 #endif
