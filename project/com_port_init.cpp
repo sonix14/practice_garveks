@@ -227,7 +227,7 @@ void Com_port::writeData(const std::string& file) {
 
     DWORD dwBytesWritten;
     std::ifstream in(file, std::ifstream::ate | std::ifstream::binary);
-    unsigned long file_size =  in.tellg();
+    unsigned long file_size = in.tellg();
     std::cout << "Rope Weight : " << file_size << " byte" << "\n";
     DWORD dwSize = sizeof(file_size);
     BOOL iRet = WriteFile(cPort, &file_size, dwSize, &dwBytesWritten, NULL);
@@ -245,9 +245,9 @@ void Com_port::writeData(const std::string& file) {
     if (read_all_file) {
         unsigned long count = fread(mass_all_file, sizeof mass_all_file[0], file_size, read_all_file);
         fclose(read_all_file);
-        
+
         unsigned long check_sum = calculateChecksumCRC32(mass_all_file, count);
-        std::cout << "CRC32 = " << check_sum << "\n\n";
+        std::cout << "CRC32 = " << check_sum << "\n";
         dwSize = sizeof(check_sum);
         iRet = WriteFile(cPort, &check_sum, dwSize, &dwBytesWritten, NULL);
         if (!iRet || dwBytesWritten != dwSize) {
@@ -255,65 +255,112 @@ void Com_port::writeData(const std::string& file) {
             cPort = INVALID_HANDLE_VALUE;
             std::cout << "Error writing check sum to port\n";
         }
-    } else {
-        std::cout << "File not found\n";
-    }
-
-    unsigned long buff = file_size;
-    FILE* fp;
-    fopen_s(&fp, file_name, "r");
-    const int fragment_size = 10;
-    char mass_fragment[fragment_size];
-    if (fp) {
-        while (buff > fragment_size) {
-            size_t count = fread(mass_fragment, sizeof mass_fragment[0], fragment_size, fp);
-            buff -= fragment_size;
-
-            dwSize = sizeof(mass_fragment);
-            iRet = WriteFile(cPort, &mass_fragment, dwSize, &dwBytesWritten, NULL);
-            if (!iRet || dwBytesWritten != dwSize) {
-                CloseHandle(cPort);
-                cPort = INVALID_HANDLE_VALUE;
-                std::cout << "Error writing to port\n";
-            }
-            unsigned short check_sum = calculateChecksumCRC16(mass_fragment, fragment_size);
-            std::cout << "CRC16 = " << check_sum << "\n";
-            dwSize = sizeof(check_sum);
-            iRet = WriteFile(cPort, &check_sum, dwSize, &dwBytesWritten, NULL);
-            if (!iRet || dwBytesWritten != dwSize) {
-                CloseHandle(cPort);
-                cPort = INVALID_HANDLE_VALUE;
-                std::cout << "Error writing check sum fragment to port\n";
-            }
-        }
-        unsigned long endPart_fragment_size = buff;
-        char* endPart_mass_fragment = new char[endPart_fragment_size];
-        if (buff > 0) {
-            size_t count = fread(endPart_mass_fragment, sizeof endPart_mass_fragment[0], buff, fp);
-            printf("read %zu elements out of %d\n", count, buff);
-        }
-        dwSize = sizeof(endPart_mass_fragment);
-        iRet = WriteFile(cPort, &endPart_mass_fragment, dwSize, &dwBytesWritten, NULL);
-        if (!iRet || dwBytesWritten != dwSize) {
-            CloseHandle(cPort);
-            cPort = INVALID_HANDLE_VALUE;
-            std::cout << "Error writing to port\n";
-        }
-        unsigned short check_sum = calculateChecksumCRC16(endPart_mass_fragment, endPart_fragment_size);
-        std::cout << "CRC16 = " << check_sum << "\n\n";
-        dwSize = sizeof(check_sum);
-        iRet = WriteFile(cPort, &check_sum, dwSize, &dwBytesWritten, NULL);
-        if (!iRet || dwBytesWritten != dwSize) {
-            CloseHandle(cPort);
-            cPort = INVALID_HANDLE_VALUE;
-            std::cout << "Error writing check sum fragment to port\n";
-        }
-        delete[] endPart_mass_fragment;
-        delete[] mass_all_file;
-        fclose(fp);
     }
     else {
         std::cout << "File not found\n";
+    }
+    delete[] mass_all_file;
+
+    std::cout << "Requesting permission to transfer data\n";
+    if (getAnswer()) {
+        std::cout << "Start sent data\n";
+        unsigned long buff = file_size;
+        FILE* fp;
+        fopen_s(&fp, file_name, "r");
+        const int fragment_size = 10;
+        char mass_fragment[fragment_size];
+        int count_error = 0;
+        bool correct_fragment;
+        if (fp) {
+            while (buff > fragment_size && count_error != MAX_ERROR) {
+                size_t count = fread(mass_fragment, sizeof mass_fragment[0], fragment_size, fp);
+                buff -= fragment_size;
+
+                correct_fragment = false;
+                count_error = 0;
+                while (!correct_fragment && count_error != MAX_ERROR) {
+                    count_error++;
+                    dwSize = sizeof(mass_fragment);
+                    iRet = WriteFile(cPort, &mass_fragment, dwSize, &dwBytesWritten, NULL);
+                    if (!iRet || dwBytesWritten != dwSize) {
+                        CloseHandle(cPort);
+                        cPort = INVALID_HANDLE_VALUE;
+                        std::cout << "Error writing to port\n";
+                    }
+                    unsigned short check_sum = calculateChecksumCRC16(mass_fragment, fragment_size);
+                    std::cout << "CRC16 = " << check_sum << "   ";
+                    dwSize = sizeof(check_sum);
+                    iRet = WriteFile(cPort, &check_sum, dwSize, &dwBytesWritten, NULL);
+                    if (!iRet || dwBytesWritten != dwSize) {
+                        CloseHandle(cPort);
+                        cPort = INVALID_HANDLE_VALUE;
+                        std::cout << "Error writing check sum fragment to port\n";
+                    }
+                    if (getAnswer()) {
+                        correct_fragment = true;
+                        std::cout << "The fragment was sent and received correctly\n";
+                    }
+                    else {
+                        correct_fragment = false;
+                        std::cout << "The fragment was sent and received incorrectly, I try again\n";
+                    }
+                }
+            }
+            if (count_error != MAX_ERROR) {
+                unsigned long endPart_fragment_size = buff;
+                char* endPart_mass_fragment = new char[endPart_fragment_size];
+                if (buff > 0) {
+                    size_t count = fread(endPart_mass_fragment, sizeof endPart_mass_fragment[0], buff, fp);
+                    //printf("read %zu elements out of %d\n", count, buff);
+                }
+                correct_fragment = false;
+                count_error = 0;
+                while (!correct_fragment && count_error != MAX_ERROR) {
+                    count_error++;
+                    dwSize = sizeof(endPart_mass_fragment);
+                    iRet = WriteFile(cPort, &endPart_mass_fragment, dwSize, &dwBytesWritten, NULL);
+                    if (!iRet || dwBytesWritten != dwSize) {
+                        CloseHandle(cPort);
+                        cPort = INVALID_HANDLE_VALUE;
+                        std::cout << "Error writing to port\n";
+                    }
+                    unsigned short check_sum = calculateChecksumCRC16(endPart_mass_fragment, endPart_fragment_size);
+                    std::cout << "CRC16 = " << check_sum << "   ";
+                    dwSize = sizeof(check_sum);
+                    iRet = WriteFile(cPort, &check_sum, dwSize, &dwBytesWritten, NULL);
+                    if (!iRet || dwBytesWritten != dwSize) {
+                        CloseHandle(cPort);
+                        cPort = INVALID_HANDLE_VALUE;
+                        std::cout << "Error writing check sum fragment to port\n";
+                    }
+                    if (getAnswer()) {
+                        correct_fragment = true;
+                        std::cout << "The fragment was sent and received correctly\n";
+                    }
+                    else {
+                        correct_fragment = false;
+                        std::cout << "The fragment was sent and received incorrectly, I try again\n";
+                    }
+                }
+                if (count_error != MAX_ERROR && getAnswer()) {
+                    std::cout << "The file was successfully accepted sent and accepted by the second party\n";
+                }
+                else {
+                    std::cout << "Error! The file was sent and received incorrectly\n";
+                }
+                delete[] endPart_mass_fragment;
+            }
+            else {
+                std::cout << "Error! The file was sent and received incorrectly\n";
+            }
+            fclose(fp);
+        }
+        else {
+            std::cout << "File not found\n";
+        }
+    }
+    else {
+        std::cout << "Permission was not received\n";
     }
 }
 
@@ -350,4 +397,49 @@ unsigned short Com_port::calculateChecksumCRC16(char* mass, unsigned long count)
             crc = crc & 0x8000 ? (crc << 1) ^ 0x1021 : crc << 1;
     }
     return crc;
+}
+
+bool Com_port::getAnswer() {
+    const int READ_TIME = 100;
+    OVERLAPPED sync = { 0 };
+    int reuslt = 0;
+    unsigned long wait = 0, read = 0, state = 0;
+    char dst;
+    unsigned long size = sizeof(dst);
+
+    sync.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    if (sync.hEvent) {
+        if (SetCommMask(cPort, EV_RXCHAR)) {
+            WaitCommEvent(cPort, &state, &sync);
+            wait = WaitForSingleObject(sync.hEvent, READ_TIME);
+            if (wait == WAIT_OBJECT_0) {
+                if (ReadFile(cPort, &dst, size, &read, &sync)) {
+                    wait = WaitForSingleObject(sync.hEvent, READ_TIME);
+                    if (wait == WAIT_OBJECT_0) {
+                        if (dst == 'y') {
+                            CloseHandle(sync.hEvent);
+                            return true;
+                        }
+                        else if (dst == 'n') {
+                            CloseHandle(sync.hEvent);
+                            return false;
+                        }
+                        else {
+                            if (getAnswer()) {
+                                return true;
+                            }
+                            else {
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        CloseHandle(sync.hEvent);
+        return false;
+    }
+    else {
+        return false;
+    }
 }

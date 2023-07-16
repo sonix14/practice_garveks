@@ -25,6 +25,7 @@ private:
     unsigned short calculateChecksumCRC16( char* mass, unsigned long count);
 
     wchar_t* convertToLPCTSTR(const std::string& str);
+    bool getAnswer();
 };
 
 #endif
