@@ -199,7 +199,6 @@ void FTP::recieveFile(const std::string& portName, const std::string& folderPath
     while (true) {
         if (counter == MAX_ERROR) {
             std::cout << "Too much tries for one fragment!\n";
-            //close
             closeConnection();
             successFlag = false;
             counter = 0;
@@ -236,18 +235,16 @@ void FTP::recieveFile(const std::string& portName, const std::string& folderPath
         memset(dst, 0, 1024);
 
         if (trialChecksum > fullChecksum) { //!
-            //close
             std::cout << "Too much fragments\n";
             //give an answer
             successFlag = false;
+            closeConnection();
             break;
         }
         else if (trialChecksum == fullChecksum) {
             //give an answer about succsessful acceptance
             std::cout << "The file was accepted successfully!\n";
-            //give an answer
             successFlag = true;
-            //close
             closeConnection();
             break;
         }
@@ -259,119 +256,6 @@ void FTP::recieveFile(const std::string& portName, const std::string& folderPath
         std::cout << "File was written to the folder\n";
     }
     delete dst;
-    /*
-    int counter = 0;
-    bool flag = true;
-    std::vector<char> buffer;
-    int fullSize = 0;
-    long int fullChecksum = 0;
-    long int checksum = 1;
-    long int trialChecksum = 0;
-    const int READ_TIME = 100;
-    OVERLAPPED sync = { 0 };
-    int result = 0;
-    unsigned long wait = 0, read = 0, state = 0;
-    char dst[1024] = { 0 }; //unsigned
-    unsigned long size = sizeof(dst);
-    sync.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL); // Creating a synchronization object
-
-    while (true) {
-        if (SetCommMask(port.cPort, EV_RXCHAR)) { // Setting the mask for port events                 //
-            if (WaitCommEvent(port.cPort, &state, &sync)) { // Linking the port and the synchronization object            //
-                wait = WaitForSingleObject(sync.hEvent, INFINITE);// Start waiting for data
-                if (wait == WAIT_OBJECT_0) { // Data received
-                    if (fullSize == 0) {
-                        ReadFile(port.cPort, dst, size, &read, 0); //size of file      //
-                        fullSize = std::atoi(dst);
-                        //fullSize = std::stoi(std::string(buffer));
-                        if (fullSize <= 0) {
-                            std::cout << "Uncorrect size\n";
-                        }
-                        else
-                            std::cout << "Accepted size\n";
-                        memset(dst, 0, 1024);
-                    }
-                    else if (fullSize != 0 && fullChecksum == 0) {
-                        ReadFile(port.cPort, dst, size, &read, &sync); //full file check sum   //
-                        fullChecksum = std::atoi(dst);
-                        if (fullChecksum <= 0) {
-                            std::cout << "Uncorrect checksum\n";
-                        }
-                        else
-                            std::cout << "Accepted checksum\n";
-                        memset(dst, 0, 1024);
-                    }
-                    else {
-                        //give an answer about readiness to accept data
-                        std::cout << "Ready to accept data\n";
-                        if (trialChecksum > fullChecksum) {
-                            //close
-                            std::cout << "Too much fragments\n";
-                            break;
-                        }
-                        else if (trialChecksum < fullChecksum) {
-                            char temp[1024] = { 0 };
-                            if (counter == MAX_ERROR) {
-                                std::cout << "Too much tries for one fragment!\n";
-                                //close
-                                counter = 0;
-                                break;
-                            }
-                            if (flag == true) {
-                                ReadFile(port.cPort, temp, size, &read, &sync); //fragment  //
-                                flag = false;
-                            }
-                            else {
-                                ReadFile(port.cPort, dst, size, &read, &sync); // checksum  //
-                                checksum = std::atoi(dst);
-                                if (calculateChecksumCRC16(temp, size) != checksum) {
-                                    //uncorrect fragment
-                                    std::cout << "The fragment was not accepted successfully! Try again\n";
-                                    counter++;
-                                    flag = true;
-                                    continue;
-                                }
-                                else {
-                                    std::cout << "The fragment was accepted successfully\n";
-                                    for (int i : temp) {
-                                        buffer.push_back(temp[i]);
-                                    }
-                                    int buffSize = buffer.size();
-                                    char* array = new char[buffSize];
-                                    for (int i = 0; i < buffSize; i++) {
-                                        array[i] = buffer[i];
-                                    }
-                                    trialChecksum = calculateChecksumCRC16(array, buffSize);
-                                    delete[] array;
-                                    counter = 0;
-                                }
-                                flag = true;
-                                //memset(dst, 0, 1024);
-                            }
-                            memset(dst, 0, 1024);
-                        }
-                        else if (trialChecksum == fullChecksum) {
-                            //write file into the folder
-                            std::cout << "The file was accepted successfully!\n";
-                            //close
-                        }
-                        /*
-                        if (wait == WAIT_OBJECT_0)
-                            if (GetOverlappedResult(cPort, &sync, &read, FALSE)) {
-                                result = read;
-                                std::cout << "Size of fragment: " << result << '\n';
-                        }
-                        
-                    }
-                }
-            }
-        }
-        ResetEvent(sync.hEvent);
-    }
-    //std::cout << "Received bytes: " << result;
-    //std::cout << "\nFile: " << dst;
-    CloseHandle(sync.hEvent);
-    */
 }
 
 /*We describe the Crc32 calculation function
