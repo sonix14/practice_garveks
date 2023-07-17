@@ -112,9 +112,7 @@ void Com_port::readData(char* dst) {
         wait = WaitForSingleObject(sync.hEvent, READ_TIME);  // Start waiting for data
         if (wait == WAIT_OBJECT_0) {  // Data received
             ReadFile(cPort, dst, size, &read, &sync);
-            /* Ждем завершения операции чтения */
             wait = WaitForSingleObject(sync.hEvent, READ_TIME);
-            /* Если все успешно завершено, узнаем какой объем данных прочитан */
             if (wait == WAIT_OBJECT_0)
                 if (GetOverlappedResult(cPort, &sync, &read, FALSE))
                     reuslt = read;
@@ -127,12 +125,4 @@ wchar_t* Com_port::convertToLPCTSTR(const std::string& str) {
     char* chars = new char[str.length() + 1];
     str.copy(chars, str.length());
     chars[str.length()] = '\0';
-
-    size_t size = strlen(chars) + 1;
-    wchar_t* wchars = new wchar_t[size];
-    size_t outSize;
-    mbstowcs_s(&outSize, wchars, size, chars, size - 1);
-    //std::wstring wstr(wchars);
-
-    return wchars;
 }
