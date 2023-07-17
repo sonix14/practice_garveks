@@ -21,7 +21,6 @@ private:
     bool installPortTimeouts();
 
     wchar_t* convertToLPCTSTR(const std::string& str);
-    bool getAnswer();
 };
 
 #endif
