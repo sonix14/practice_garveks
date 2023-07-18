@@ -10,7 +10,7 @@ public:
 	void closeConnection();
 
 	virtual void sendFile(const std::string& file);
-	virtual bool recieveFile(const std::string& portName, const std::string& folderPath, const std::string& fileName);
+	virtual bool receiveFile(const std::string& portName, const std::string& folderPath, const std::string& fileName);
 
 private:
 	Com_port port;
