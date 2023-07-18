@@ -101,8 +101,6 @@ void Com_port::readData(char* dst) {
     const int READ_TIME = 100;
     OVERLAPPED sync = { 0 };
     int reuslt = 0;
-    //char* dst[1024] = { 0 }; //unsigned
-    //char* dst = new char(1024);
     unsigned long size = sizeof(dst);
     unsigned long wait = 0, read = 0, state = 0;
     sync.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL); // Creating a synchronization object
@@ -125,4 +123,11 @@ wchar_t* Com_port::convertToLPCTSTR(const std::string& str) {
     char* chars = new char[str.length() + 1];
     str.copy(chars, str.length());
     chars[str.length()] = '\0';
+
+    size_t size = strlen(chars) + 1;
+    wchar_t* wchars = new wchar_t[size];
+    size_t outSize;
+    mbstowcs_s(&outSize, wchars, size, chars, size - 1);
+
+    return wchars;
 }
