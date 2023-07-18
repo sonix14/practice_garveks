@@ -171,7 +171,7 @@ void FTP::sendFile(const std::string& file) {
     }
 }
 
-bool FTP::recieveFile(const std::string& portName, const std::string& folderPath, const std::string& fileName) {
+bool FTP::receiveFile(const std::string& portName, const std::string& folderPath, const std::string& fileName) {
     char* dst = new char(1024);
     unsigned long size = sizeof(dst);
     int fullSize = 0;
