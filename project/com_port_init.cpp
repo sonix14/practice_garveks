@@ -93,14 +93,14 @@ void Com_port::closePort() {
     }
 }
 
-void Com_port::writeData(const std::string& file) {
+void Com_port::writeData(const char str) {  //const std::string& file
 
 }
 
 void Com_port::readData(char* dst) {
     const int READ_TIME = 100;
     OVERLAPPED sync = { 0 };
-    int reuslt = 0;
+    int result = 0;
     unsigned long size = sizeof(dst);
     unsigned long wait = 0, read = 0, state = 0;
     sync.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL); // Creating a synchronization object
@@ -113,7 +113,7 @@ void Com_port::readData(char* dst) {
             wait = WaitForSingleObject(sync.hEvent, READ_TIME);
             if (wait == WAIT_OBJECT_0)
                 if (GetOverlappedResult(cPort, &sync, &read, FALSE))
-                    reuslt = read;
+                    result = read;
         }
     }
     CloseHandle(sync.hEvent);
