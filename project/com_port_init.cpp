@@ -94,7 +94,6 @@ void Com_port::closePort() {
 }
 
 void Com_port::writeData(const char* data, const DWORD& dwSize) {
-    //DWORD dwSize;
     DWORD dwBytesWritten;
     BOOL iRet = WriteFile(cPort, &data, dwSize, &dwBytesWritten, NULL);
     if (!iRet || dwBytesWritten != dwSize) {

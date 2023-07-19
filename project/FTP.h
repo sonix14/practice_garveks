@@ -19,7 +19,7 @@ private:
 	unsigned long calculateChecksumCRC32(unsigned char* mass, unsigned long count);
 	unsigned short calculateChecksumCRC16(char* mass, unsigned long count);
 
-	bool getAnswer();
+	bool getAnswer(char* elem, unsigned long& read);
 };
 
 #endif

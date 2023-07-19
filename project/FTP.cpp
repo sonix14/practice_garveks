@@ -41,6 +41,8 @@ void FTP::sendFile(const std::string& file, const std::string& portName) {
     }
 
     DWORD dwSize;
+    char* elem = new char[1];
+    unsigned long read = 0;
     std::ifstream in(file, std::ifstream::ate | std::ifstream::binary);
     unsigned long file_size = in.tellg();
     std::cout << "Rope Weight : " << file_size << " byte" << "\n";
@@ -77,7 +79,7 @@ void FTP::sendFile(const std::string& file, const std::string& portName) {
     delete[] mass_all_file;
 
     std::cout << "Requesting permission to transfer data\n";
-    if (!getAnswer()) {
+    if (!getAnswer(elem, read)) {
         std::cout << "Permission was not received\n";
         closeConnection();
         return;
@@ -114,7 +116,7 @@ void FTP::sendFile(const std::string& file, const std::string& portName) {
             ch_check_sum = const_cast<char*>(s_check_sum.c_str());
             dwSize = s_check_sum.length();
             port.writeData(ch_check_sum, dwSize);
-            if (getAnswer()) {
+            if (getAnswer(elem, read)) {
                 correct_fragment = true;
                 std::cout << "The fragment was sent and received correctly\n";
             }
@@ -150,7 +152,7 @@ void FTP::sendFile(const std::string& file, const std::string& portName) {
         ch_check_sum = const_cast<char*>(s_check_sum.c_str());
         dwSize = s_check_sum.length();
         port.writeData(ch_check_sum, dwSize);
-        if (getAnswer()) {
+        if (getAnswer(elem, read)) {
             correct_fragment = true;
             std::cout << "The fragment was sent and received correctly\n";
         }
@@ -159,7 +161,7 @@ void FTP::sendFile(const std::string& file, const std::string& portName) {
             std::cout << "The fragment was sent and received incorrectly, I try again\n";
         }
     }
-    if (count_error != MAX_ERROR && getAnswer()) {
+    if (count_error != MAX_ERROR && getAnswer(elem, read)) {
         std::cout << "The file was successfully accepted sent and accepted by the second party\n";
     }
     else {
@@ -333,47 +335,12 @@ unsigned short FTP::calculateChecksumCRC16(char* mass, unsigned long count) {
     return crc;
 }
 
-bool FTP::getAnswer() {
-    const int READ_TIME = 100;
-    OVERLAPPED sync = { 0 };
-    int reuslt = 0;
-    unsigned long wait = 0, read = 0, state = 0;
-    char dst;
-    unsigned long size = sizeof(dst);
-
-    sync.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-    if (sync.hEvent) {
-        if (SetCommMask(port.cPort, EV_RXCHAR)) {
-            WaitCommEvent(port.cPort, &state, &sync);
-            wait = WaitForSingleObject(sync.hEvent, READ_TIME);
-            if (wait == WAIT_OBJECT_0) {
-                if (ReadFile(port.cPort, &dst, size, &read, &sync)) {
-                    wait = WaitForSingleObject(sync.hEvent, READ_TIME);
-                    if (wait == WAIT_OBJECT_0) {
-                        if (dst == APPROVAL[0]) {
-                            CloseHandle(sync.hEvent);
-                            return true;
-                        }
-                        else if (dst == REJECTION[0]) {
-                            CloseHandle(sync.hEvent);
-                            return false;
-                        }
-                        else {
-                            if (getAnswer()) {
-                                return true;
-                            }
-                            else {
-                                return false;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        CloseHandle(sync.hEvent);
-        return false;
+bool FTP::getAnswer(char* elem, unsigned long& read) {
+    port.readData(elem, read);
+    if (elem[0] == APPROVAL[0]) {
+        return true;
     }
-    else {
+    else if (elem[0] == REJECTION[0]) {
         return false;
-    }
+    }            
 }
