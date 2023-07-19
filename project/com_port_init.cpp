@@ -14,7 +14,7 @@ Com_port::~Com_port() {
     closePort();
 }
 
-bool Com_port::openPort(const std::string& port, int baudrate) {
+bool Com_port::openPort(const std::string& port, const int* baudrate) {
 
     closePort();
     wchar_t* wPort = convertToLPCTSTR(port);
@@ -42,7 +42,7 @@ bool Com_port::openPort(const std::string& port, int baudrate) {
     }
 }
 
-bool Com_port::installPortSettings(int baudrate) {
+bool Com_port::installPortSettings(const int* baudrate) {
     DCB PortDCB = { 0 };
     PortDCB.DCBlength = sizeof(DCB); // getting the default information of the DCB structure
     if (!GetCommState(cPort, &PortDCB)) {
@@ -93,8 +93,15 @@ void Com_port::closePort() {
     }
 }
 
-void Com_port::writeData(const char str) {  //const std::string& file
-
+void Com_port::writeData(const char* data, const DWORD& dwSize) {
+    //DWORD dwSize;
+    DWORD dwBytesWritten;
+    BOOL iRet = WriteFile(cPort, &data, dwSize, &dwBytesWritten, NULL);
+    if (!iRet || dwBytesWritten != dwSize) {
+        CloseHandle(cPort);
+        cPort = INVALID_HANDLE_VALUE; 
+        std::cout << "Error writing file size to port\n";
+    }
 }
 
 bool Com_port::readData(char* dst, unsigned long& read) {

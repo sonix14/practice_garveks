@@ -1,5 +1,5 @@
-#ifndef FILE_TRANSFER_PROTOCOL
-#define FILE_TRANSFER_PROTOCOL
+#ifndef FTP_H
+#define FTP_H
 
 #include "COM_PORT_INIT.h"
 
@@ -9,7 +9,7 @@ public:
 	bool openConnection(const std::string& portName);
 	void closeConnection();
 
-	virtual void sendFile(const std::string& file);
+	virtual void sendFile(const std::string& file, const std::string& portName);
 	virtual bool receiveFile(const std::string& portName, const std::string& folderPath, const std::string& fileName);
 
 private:

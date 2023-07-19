@@ -1,4 +1,4 @@
-﻿﻿#ifndef COM_PORT_INIT_H
+﻿#ifndef COM_PORT_INIT_H
 #define COM_PORT_INIT_H
 
 #include <windows.h>
@@ -10,14 +10,14 @@ struct Com_port {
     Com_port();
     virtual ~Com_port();
 
-    bool openPort(const std::string& port, int baudrate);
+    bool openPort(const std::string& port, const int* baudrate);
     void closePort();
 
-    virtual void writeData(const char str);
+    virtual void writeData(const char* data, const DWORD& dwSize);
     virtual bool readData(char* dst, unsigned long& read);
 
 private:
-    bool installPortSettings(int baudrate);
+    bool installPortSettings(const int* baudrate);
     bool installPortTimeouts();
 
     wchar_t* convertToLPCTSTR(const std::string& str);

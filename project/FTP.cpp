@@ -1,3 +1,6 @@
+#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
+#define _CRT_SECURE_NO_WARNINGS
+
 #include "FTP.h"
 
 #include <windows.h>
@@ -5,15 +8,17 @@
 #include <string>
 #include <fstream>
 #include <algorithm>
+#include <vector>
 
-#include <experimental/filesystem>  //!!!!!!!!!
+#include <experimental/filesystem>
 
-const char APPROVAL = 'y';
-const char REJECTION = 'n';
-namespace fs = std::experimental::filesystem;  //!!!!!!!!!!1
+char APPROVAL[1] = { 'y' };
+char REJECTION[1] = { 'n' };
+namespace fs = std::experimental::filesystem;
 
 bool FTP::openConnection(const std::string& portName) {
-    if (port.openPort(portName, 9600)) {
+    int baudrate = 9600;
+    if (port.openPort(portName, &baudrate)) {
         std::cout << "Port (" << portName << ") was opened\n";
         return true;
     }
@@ -28,23 +33,25 @@ void FTP::closeConnection() {
     std::cout << "The connection is closed.\n";
 }
 
-void FTP::sendFile(const std::string& file) {
+void FTP::sendFile(const std::string& file, const std::string& portName) {
 
-    DWORD dwBytesWritten;
+    if (!openConnection(portName)) {
+        std::cout << "Couldn't recieve a file\n";
+        return;
+    }
+
+    DWORD dwSize;
     std::ifstream in(file, std::ifstream::ate | std::ifstream::binary);
     unsigned long file_size = in.tellg();
     std::cout << "Rope Weight : " << file_size << " byte" << "\n";
-    DWORD dwSize = sizeof(file_size);
-    BOOL iRet = WriteFile(port.cPort, &file_size, dwSize, &dwBytesWritten, NULL);  //
-    if (!iRet || dwBytesWritten != dwSize) {
-        CloseHandle(port.cPort); //
-        port.cPort = INVALID_HANDLE_VALUE;  //
-        std::cout << "Error writing file size to port\n";
-    }
-    //const char file_name[10] = "hello.txt";//!!!!!!!!!!!!
+    std::string s_file_size = std::to_string(file_size);
+    char* ch_file_size = new char[s_file_size.length()];
+    ch_file_size = const_cast<char*>(s_file_size.c_str());
+    dwSize = s_file_size.length();
+    port.writeData(ch_file_size, dwSize);
+
     char* file_name = new char[file.length()];
     file_name = const_cast<char*>(file.c_str());
-
     FILE* read_all_file;
     fopen_s(&read_all_file, file_name, "r");
     unsigned long all_file_size = file_size;
@@ -55,120 +62,112 @@ void FTP::sendFile(const std::string& file) {
 
         unsigned long check_sum = calculateChecksumCRC32(mass_all_file, count);
         std::cout << "CRC32 = " << check_sum << "\n";
-        dwSize = sizeof(check_sum);
-        iRet = WriteFile(port.cPort, &check_sum, dwSize, &dwBytesWritten, NULL);  //
-        if (!iRet || dwBytesWritten != dwSize) {
-            CloseHandle(port.cPort);  //
-            port.cPort = INVALID_HANDLE_VALUE;
-            std::cout << "Error writing check sum to port\n";
-        }
+        std::string s_check_sum = std::to_string(check_sum);
+        char* ch_check_sum = new char[s_check_sum.length()];
+        ch_check_sum = const_cast<char*>(s_check_sum.c_str());
+        dwSize = s_check_sum.length();
+        port.writeData(ch_check_sum, dwSize);
     }
     else {
         std::cout << "File not found\n";
+        closeConnection();
+        delete[] mass_all_file;
+        return;
     }
     delete[] mass_all_file;
 
     std::cout << "Requesting permission to transfer data\n";
-    if (getAnswer()) {
-        std::cout << "Start sent data\n";
-        unsigned long buff = file_size;
-        FILE* fp;
-        fopen_s(&fp, file_name, "r");
-        const int fragment_size = 10;
-        char mass_fragment[fragment_size];
-        int count_error = 0;
-        bool correct_fragment;
-        if (fp) {
-            while (buff > fragment_size && count_error != MAX_ERROR) {
-                size_t count = fread(mass_fragment, sizeof mass_fragment[0], fragment_size, fp);
-                buff -= fragment_size;
+    if (!getAnswer()) {
+        std::cout << "Permission was not received\n";
+        closeConnection();
+        return;
+    }
 
-                correct_fragment = false;
-                count_error = 0;
-                while (!correct_fragment && count_error != MAX_ERROR) {
-                    count_error++;
-                    dwSize = sizeof(mass_fragment);
-                    iRet = WriteFile(port.cPort, &mass_fragment, dwSize, &dwBytesWritten, NULL);        //
-                    if (!iRet || dwBytesWritten != dwSize) {
-                        CloseHandle(port.cPort);       //
-                        port.cPort = INVALID_HANDLE_VALUE;    //
-                        std::cout << "Error writing to port\n";
-                    }
-                    unsigned short check_sum = calculateChecksumCRC16(mass_fragment, fragment_size);
-                    std::cout << "CRC16 = " << check_sum << "   ";
-                    dwSize = sizeof(check_sum);
-                    iRet = WriteFile(port.cPort, &check_sum, dwSize, &dwBytesWritten, NULL);        //
-                    if (!iRet || dwBytesWritten != dwSize) {
-                        CloseHandle(port.cPort);         //
-                        port.cPort = INVALID_HANDLE_VALUE;      //
-                        std::cout << "Error writing check sum fragment to port\n";
-                    }
-                    if (getAnswer()) {
-                        correct_fragment = true;
-                        std::cout << "The fragment was sent and received correctly\n";
-                    }
-                    else {
-                        correct_fragment = false;
-                        std::cout << "The fragment was sent and received incorrectly, I try again\n";
-                    }
-                }
-            }
-            if (count_error != MAX_ERROR) {
-                unsigned long endPart_fragment_size = buff;
-                char* endPart_mass_fragment = new char[endPart_fragment_size];
-                if (buff > 0) {
-                    size_t count = fread(endPart_mass_fragment, sizeof endPart_mass_fragment[0], buff, fp);
-                    //printf("read %zu elements out of %d\n", count, buff);
-                }
-                correct_fragment = false;
-                count_error = 0;
-                while (!correct_fragment && count_error != MAX_ERROR) {
-                    count_error++;
-                    dwSize = sizeof(endPart_mass_fragment);
-                    iRet = WriteFile(port.cPort, &endPart_mass_fragment, dwSize, &dwBytesWritten, NULL);     //
-                    if (!iRet || dwBytesWritten != dwSize) {
-                        CloseHandle(port.cPort);     //
-                        port.cPort = INVALID_HANDLE_VALUE;   //
-                        std::cout << "Error writing to port\n";
-                    }
-                    unsigned short check_sum = calculateChecksumCRC16(endPart_mass_fragment, endPart_fragment_size);
-                    std::cout << "CRC16 = " << check_sum << "   ";
-                    dwSize = sizeof(check_sum);
-                    iRet = WriteFile(port.cPort, &check_sum, dwSize, &dwBytesWritten, NULL);  //
-                    if (!iRet || dwBytesWritten != dwSize) {
-                        CloseHandle(port.cPort);   //
-                        port.cPort = INVALID_HANDLE_VALUE;       //
-                        std::cout << "Error writing check sum fragment to port\n";
-                    }
-                    if (getAnswer()) {
-                        correct_fragment = true;
-                        std::cout << "The fragment was sent and received correctly\n";
-                    }
-                    else {
-                        correct_fragment = false;
-                        std::cout << "The fragment was sent and received incorrectly, I try again\n";
-                    }
-                }
-                if (count_error != MAX_ERROR && getAnswer()) {
-                    std::cout << "The file was successfully accepted sent and accepted by the second party\n";
-                }
-                else {
-                    std::cout << "Error! The file was sent and received incorrectly\n";
-                }
-                delete[] endPart_mass_fragment;
+    std::cout << "Start sent data\n";
+    unsigned long buff = file_size;
+    FILE* fp;
+    fopen_s(&fp, file_name, "r");
+    const int fragment_size = 10;
+    char mass_fragment[fragment_size];
+    int count_error = 0;
+    bool correct_fragment;
+    if (!fp) {
+        std::cout << "File not found\n";
+        closeConnection();
+        return;
+    }
+    while (buff > fragment_size && count_error != MAX_ERROR) {
+        size_t count = fread(mass_fragment, sizeof mass_fragment[0], fragment_size, fp);
+        buff -= fragment_size;
+        //std::cout << "\n" << mass_fragment;
+
+        correct_fragment = false;
+        count_error = 0;
+        while (!correct_fragment && count_error != MAX_ERROR) {
+            count_error++;
+            dwSize = sizeof(mass_fragment);
+            port.writeData(mass_fragment, dwSize);
+            unsigned short check_sum = calculateChecksumCRC16(mass_fragment, fragment_size);
+            std::cout << "CRC16 = " << check_sum << "   ";
+            std::string s_check_sum = std::to_string(check_sum);
+            char* ch_check_sum = new char[s_check_sum.length()];
+            ch_check_sum = const_cast<char*>(s_check_sum.c_str());
+            dwSize = s_check_sum.length();
+            port.writeData(ch_check_sum, dwSize);
+            if (getAnswer()) {
+                correct_fragment = true;
+                std::cout << "The fragment was sent and received correctly\n";
             }
             else {
-                std::cout << "Error! The file was sent and received incorrectly\n";
+                correct_fragment = false;
+                std::cout << "The fragment was sent and received incorrectly, I try again\n";
             }
-            fclose(fp);
+        }
+    }
+    if (count_error == MAX_ERROR) {
+        std::cout << "Error! The file was sent and received incorrectly\n";
+        closeConnection();
+        fclose(fp);
+        return;
+    }
+    unsigned long endPart_fragment_size = buff;
+    char* endPart_mass_fragment = new char[endPart_fragment_size];
+    if (buff > 0) {
+        size_t count = fread(endPart_mass_fragment, sizeof endPart_mass_fragment[0], buff, fp);
+        //std::cout << "\n" << endPart_mass_fragment;
+        //printf("read %zu elements out of %d\n", count, buff);
+    }
+    correct_fragment = false;
+    count_error = 0;
+    while (!correct_fragment && count_error != MAX_ERROR) {
+        count_error++;
+        dwSize = sizeof(endPart_mass_fragment);
+        port.writeData(endPart_mass_fragment, dwSize);
+        unsigned short check_sum = calculateChecksumCRC16(endPart_mass_fragment, endPart_fragment_size);
+        std::cout << "CRC16 = " << check_sum << "   ";
+        std::string s_check_sum = std::to_string(check_sum);
+        char* ch_check_sum = new char[s_check_sum.length()];
+        ch_check_sum = const_cast<char*>(s_check_sum.c_str());
+        dwSize = s_check_sum.length();
+        port.writeData(ch_check_sum, dwSize);
+        if (getAnswer()) {
+            correct_fragment = true;
+            std::cout << "The fragment was sent and received correctly\n";
         }
         else {
-            std::cout << "File not found\n";
+            correct_fragment = false;
+            std::cout << "The fragment was sent and received incorrectly, I try again\n";
         }
     }
-    else {
-        std::cout << "Permission was not received\n";
+    if (count_error != MAX_ERROR && getAnswer()) {
+        std::cout << "The file was successfully accepted sent and accepted by the second party\n";
     }
+    else {
+        std::cout << "Error! The file was sent and received incorrectly\n";
+    }
+    delete[] endPart_mass_fragment;
+    fclose(fp);
+    closeConnection();
 }
 
 bool FTP::receiveFile(const std::string& portName, const std::string& folderPath, const std::string& fileName) {
@@ -181,6 +180,7 @@ bool FTP::receiveFile(const std::string& portName, const std::string& folderPath
     std::vector<char> buffer;
     int counter = 0;
     bool successFlag = true;
+    DWORD dwSize = sizeof(APPROVAL);
 
     if (!openConnection(portName)) {
         std::cout << "Couldn't receive a file\n";
@@ -209,7 +209,7 @@ bool FTP::receiveFile(const std::string& portName, const std::string& folderPath
         std::cout << "Accepted checksum\n";
     memset(dst, 0, read);
 
-    port.writeData(APPROVAL); //give an answer about readiness to accept data
+    port.writeData(APPROVAL, dwSize); //give an answer about readiness to accept data
     std::cout << "Ready to accept data\n";
 
     while (true) {
@@ -232,13 +232,13 @@ bool FTP::receiveFile(const std::string& portName, const std::string& folderPath
         if (trialChecksum != checksum) {
             //uncorrect fragment
             std::cout << "The fragment was not accepted successfully! Try again\n";
-            port.writeData(REJECTION); //give an answer
+            port.writeData(REJECTION, dwSize); //give an answer
             counter++;
             continue;
         }
         else {
             std::cout << "The fragment was accepted successfully\n";
-            port.writeData(APPROVAL);  //give an answer      
+            port.writeData(APPROVAL, dwSize);  //give an answer      
             for (int i = 0; i < size; i++) {
                 buffer.push_back(dst[i]);
             }
@@ -254,7 +254,7 @@ bool FTP::receiveFile(const std::string& portName, const std::string& folderPath
         memset(dst, 0, read);
         std::string temp = std::to_string(trialChecksum);
         /*
-        if (trialChecksum > fullChecksum) { 
+        if (trialChecksum > fullChecksum) {
             std::cout << "Too much fragments\n";
             port.writeData(REJECTION);  //give an answer
             successFlag = false;
@@ -264,7 +264,7 @@ bool FTP::receiveFile(const std::string& portName, const std::string& folderPath
         */
         if (fullChecksum.compare(temp) == 0) {
             std::cout << "The file was accepted successfully!\n";
-            port.writeData(APPROVAL);  //give an answer about succsessful acceptance
+            port.writeData(APPROVAL, dwSize);  //give an answer about succsessful acceptance
             successFlag = true;
             closeConnection();
             break;
@@ -299,7 +299,7 @@ bool FTP::receiveFile(const std::string& portName, const std::string& folderPath
 }
 
 /*We describe the Crc32 calculation function
- *using a polynomial EDB88320UL=
+ using a polynomial EDB88320UL=
  x^32 + x^26 + x^23 + x^22 + x^16 + x^12 + x^11
  + x^10 + x^8 + x^7 + x^5 + x^4 + x^2 + x + 1*/
 unsigned long FTP::calculateChecksumCRC32(unsigned char* mass, unsigned long count) {
@@ -343,18 +343,18 @@ bool FTP::getAnswer() {
 
     sync.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     if (sync.hEvent) {
-        if (SetCommMask(port.cPort, EV_RXCHAR)) { //
-            WaitCommEvent(port.cPort, &state, &sync); //
+        if (SetCommMask(port.cPort, EV_RXCHAR)) {
+            WaitCommEvent(port.cPort, &state, &sync);
             wait = WaitForSingleObject(sync.hEvent, READ_TIME);
             if (wait == WAIT_OBJECT_0) {
-                if (ReadFile(port.cPort, &dst, size, &read, &sync)) { //
+                if (ReadFile(port.cPort, &dst, size, &read, &sync)) {
                     wait = WaitForSingleObject(sync.hEvent, READ_TIME);
                     if (wait == WAIT_OBJECT_0) {
-                        if (dst == 'y') {
+                        if (dst == APPROVAL[0]) {
                             CloseHandle(sync.hEvent);
                             return true;
                         }
-                        else if (dst == 'n') {
+                        else if (dst == REJECTION[0]) {
                             CloseHandle(sync.hEvent);
                             return false;
                         }
