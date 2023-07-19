@@ -97,12 +97,12 @@ void Com_port::writeData(const char str) {  //const std::string& file
 
 }
 
-void Com_port::readData(char* dst) {
+bool Com_port::readData(char* dst, unsigned long& read) {
     const int READ_TIME = 100;
     OVERLAPPED sync = { 0 };
     int result = 0;
-    unsigned long size = sizeof(dst);
-    unsigned long wait = 0, read = 0, state = 0;
+    unsigned long size = 1024;
+    unsigned long wait = 0, state = 0;  //read = 0,
     sync.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL); // Creating a synchronization object
 
     if (SetCommMask(cPort, EV_RXCHAR)) {  // Setting the mask for port events  
@@ -111,12 +111,29 @@ void Com_port::readData(char* dst) {
         if (wait == WAIT_OBJECT_0) {  // Data received
             ReadFile(cPort, dst, size, &read, &sync);
             wait = WaitForSingleObject(sync.hEvent, READ_TIME);
-            if (wait == WAIT_OBJECT_0)
-                if (GetOverlappedResult(cPort, &sync, &read, FALSE))
+            if (wait == WAIT_OBJECT_0) {
+                if (GetOverlappedResult(cPort, &sync, &read, FALSE)) {
                     result = read;
+                    /*----------*/
+                    if (result != 0) {
+                        CloseHandle(sync.hEvent);
+                        return true;
+                    }
+                    else {
+                        if (readData(dst, read)) {
+                            return true;
+                        }
+                        else {
+                            return false;
+                        }
+                    }
+                    /*----------*/
+                }
+            }
         }
     }
     CloseHandle(sync.hEvent);
+    return true;
 }
 
 wchar_t* Com_port::convertToLPCTSTR(const std::string& str) {
