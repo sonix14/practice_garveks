@@ -7,7 +7,7 @@ int main() {
 	FTP obj;
 	const std::string portName = "COM1";
 	const std::string folderPath = "C:/folder";
-	const std::string fileName = "Hello.txt";
+	const std::string fileName = "C:/My/garveks/hello1.txt";
 
 	//obj.receiveFile(portName, folderPath, "test.txt");
 	obj.sendFile(fileName, portName);

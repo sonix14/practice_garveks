@@ -11,7 +11,6 @@
 class Textbox {
 
 public:
-
 	Textbox(int size, sf::Color color, bool sel) {
 		textbox.setCharacterSize(size);
 		textbox.setFillColor(color);
@@ -55,6 +54,12 @@ public:
 
 	bool getSel() {
 		return isSelected;
+	}
+
+	void clearAll() {
+		while (text.str().length() > 0) {
+			deleteLastChar();
+		}
 	}
 
 	std::string getText() {

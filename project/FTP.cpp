@@ -43,7 +43,8 @@ void FTP::sendFile(const std::string& file, const std::string& portName) {
     DWORD dwSize;
     char* elem = new char[1];
     unsigned long read = 0;
-    std::ifstream in(file, std::ifstream::ate | std::ifstream::binary);
+    std::ifstream in;
+    in.open(file, std::ifstream::ate | std::ifstream::binary);
     unsigned long file_size = in.tellg();
     std::cout << "Rope Weight : " << file_size << " byte" << "\n";
     std::string s_file_size = std::to_string(file_size);
@@ -101,7 +102,6 @@ void FTP::sendFile(const std::string& file, const std::string& portName) {
     while (buff > fragment_size && count_error != MAX_ERROR) {
         size_t count = fread(mass_fragment, sizeof mass_fragment[0], fragment_size, fp);
         buff -= fragment_size;
-        //std::cout << "\n" << mass_fragment;
 
         correct_fragment = false;
         count_error = 0;
@@ -136,8 +136,6 @@ void FTP::sendFile(const std::string& file, const std::string& portName) {
     char* endPart_mass_fragment = new char[endPart_fragment_size];
     if (buff > 0) {
         size_t count = fread(endPart_mass_fragment, sizeof endPart_mass_fragment[0], buff, fp);
-        //std::cout << "\n" << endPart_mass_fragment;
-        //printf("read %zu elements out of %d\n", count, buff);
     }
     correct_fragment = false;
     count_error = 0;

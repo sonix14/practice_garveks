@@ -49,7 +49,7 @@ void menu(sf::RenderWindow& window) {
 	comPotrName.setPosition({ 50, 80 });
 	
 	Textbox boxComPotrName(14, sf::Color::Black, false);
-	boxComPotrName.setLimit(true, 4);
+	boxComPotrName.setLimit(true, 6);
 	boxComPotrName.setFont(font);
 	boxComPotrName.setPosition({ 60, 110 });
 	
@@ -99,8 +99,6 @@ void menu(sf::RenderWindow& window) {
 	exitText.setStyle(sf::Text::Bold);
 	exitText.setPosition({ 950, 500 });
 	
-
-	//////////////////////////////MENU///////////////////
 	while (isMenu)
 	{
 		menu1.setColor(sf::Color(15, 153, 153));
@@ -115,8 +113,14 @@ void menu(sf::RenderWindow& window) {
 
 		if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
 		{
+			boxComPotrName.clearAll();
+			boxFullPath.clearAll();
+			boxNameFile.clearAll();
+
 			if (menuNum == 1) {
+
 				while (!sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) {
+
 					input1.setColor(sf::Color(222, 146, 146));
 					input2.setColor(sf::Color(222, 146, 146));
 					input3.setColor(sf::Color(222, 146, 146));
@@ -164,20 +168,19 @@ void menu(sf::RenderWindow& window) {
 						case sf::Event::MouseMoved:
 							if (btn.isMouseOver(window)) {
 								btn.setBackColor(sf::Color(176, 43, 179));
-							}
-							else {
+							} else {
 								btn.setBackColor(sf::Color(15, 153, 153));
 							}
 							break;
 						case sf::Event::MouseButtonPressed:
-							if (btn.isMouseOver(window)) {
+							if (btn.isMouseOver(window)) {							
 								std::string portName = boxComPotrName.getText();
 								std::string fullPath = boxFullPath.getText();
 								std::string fileName = boxNameFile.getText();
 								if (!portName.empty() && !fullPath.empty() && !fileName.empty()) {
+									std::string fullName = fullPath + "/" + fileName;
 									std::cout << "yes\n";
-								}
-								else {
+								} else {
 									window.draw(errorData);
 									window.display();
 									while (!sf::Keyboard::isKeyPressed(sf::Keyboard::Return));
@@ -219,22 +222,24 @@ void menu(sf::RenderWindow& window) {
 						boxComPotrName.setSelected(true);
 						boxFullPath.setSelected(false);
 						boxNameFile.setSelected(false);
-					}
-					if (sf::IntRect(20, 161, 300, 60).contains(sf::Mouse::getPosition(window))) {
+					} else if (sf::IntRect(20, 161, 300, 60).contains(sf::Mouse::getPosition(window))) {
 						input1.setColor(sf::Color(222, 146, 146));
 						input2.setColor(sf::Color(191, 191, 191));
 						input3.setColor(sf::Color(222, 146, 146));
 						boxComPotrName.setSelected(false);
 						boxFullPath.setSelected(true);
 						boxNameFile.setSelected(false);
-					}
-					if (sf::IntRect(20, 241, 300, 60).contains(sf::Mouse::getPosition(window))) {
+					} else if (sf::IntRect(20, 241, 300, 60).contains(sf::Mouse::getPosition(window))) {
 						input1.setColor(sf::Color(222, 146, 146));
 						input2.setColor(sf::Color(222, 146, 146));
 						input3.setColor(sf::Color(191, 191, 191));
 						boxComPotrName.setSelected(false);
 						boxFullPath.setSelected(false);
 						boxNameFile.setSelected(true);
+					} else {
+						boxComPotrName.setSelected(false);
+						boxFullPath.setSelected(false);
+						boxNameFile.setSelected(false);
 					}
 
 					sf::Event event;
@@ -253,8 +258,7 @@ void menu(sf::RenderWindow& window) {
 						case sf::Event::MouseMoved:
 							if (btn.isMouseOver(window)) {
 								btn.setBackColor(sf::Color(176, 43, 179));
-							}
-							else {
+							} else {
 								btn.setBackColor(sf::Color(15, 153, 153));
 							}
 							break;
@@ -265,8 +269,8 @@ void menu(sf::RenderWindow& window) {
 								std::string fileName = boxNameFile.getText();
 								if (!portName.empty() && !fullPath.empty() && !fileName.empty()) {
 									std::cout << "yes\n";
-								}
-								else {
+
+								} else {
 									window.draw(errorData);
 									window.display();
 									while (!sf::Keyboard::isKeyPressed(sf::Keyboard::Return));

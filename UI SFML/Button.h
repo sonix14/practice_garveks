@@ -4,6 +4,7 @@
 #include <SFML/Graphics.hpp>
 
 class Button {
+
 public:
 	Button(std::string btnText, sf::Vector2f buttonSize, int charSize, sf::Color bgColor, sf::Color textColor) {
 		button.setSize(buttonSize);
@@ -57,6 +58,7 @@ public:
 		}
 		return false;
 	}
+
 private:
 	sf::RectangleShape button;
 	sf::Text text;
