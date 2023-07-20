@@ -73,12 +73,10 @@ public:
 				if (hasLimit) {
 					if (text.str().length() <= limit) {
 						inputLogic(charTyped);
-					}
-					else if (text.str().length() > limit && charTyped == DELETE_KEY) {
+					} else if (text.str().length() > limit && charTyped == DELETE_KEY) {
 						deleteLastChar();
 					}
-				}
-				else {
+				} else {
 					inputLogic(charTyped);
 				}
 			}

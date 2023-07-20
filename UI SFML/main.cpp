@@ -3,221 +3,318 @@
 #include "Textbox.h"
 #include "Button.h"
 
-int main() {
-	sf::RenderWindow window;
-
-	sf::Vector2i centerWindow((sf::VideoMode::getDesktopMode().width / 2) - 445, (sf::VideoMode::getDesktopMode().height / 2) - 480);
-
-	window.create(sf::VideoMode(900, 900), "Com port management ", sf::Style::Titlebar | sf::Style::Close);
-	window.setPosition(centerWindow);
-
-	window.setKeyRepeatEnabled(true);
+void menu(sf::RenderWindow& window) {
+	sf::Texture menuTexture1, menuTexture2, menuTexture3, aboutTexture, menuBackground, inputText;
+	menuTexture1.loadFromFile("images/send.png");
+	menuTexture2.loadFromFile("images/receive.png");
+	menuTexture3.loadFromFile("images/exit.png");
+	menuBackground.loadFromFile("images/menu.jpg");
+	inputText.loadFromFile("images/text.png");
+	sf::Sprite menu1(menuTexture1), menu2(menuTexture2), menu3(menuTexture3), about(aboutTexture), menuBg(menuBackground), input1(inputText), input2(inputText), input3(inputText);
+	bool isMenu = 1;
+	int menuNum = 0;
+	menu1.setPosition(100, 150);
+	menu2.setPosition(100, 210);
+	menu3.setPosition(100, 270);
+	menuBg.setPosition(345, 0);
+	input1.setPosition(50, 110);
+	input2.setPosition(50, 190);
+	input3.setPosition(50, 270);
 
 	sf::Font font;
 	font.loadFromFile("ArialMT.ttf");
 
 	sf::Text sendAction;
 	sendAction.setFont(font);
-	sendAction.setString("Sending a file via com port (click Enter)");
+	sendAction.setString("Sending a file via com port");
 	sendAction.setCharacterSize(20);
-	sendAction.setFillColor(sf::Color::White);
+	sendAction.setFillColor(sf::Color::Black);
 	sendAction.setStyle(sf::Text::Bold | sf::Text::Underlined);
 	sendAction.setPosition({ 40, 30 });
 
-	sf::Text comPotrName1;
-	comPotrName1.setFont(font);
-	comPotrName1.setString("Enter the name of the com port and click '1':");
-	comPotrName1.setCharacterSize(16);
-	comPotrName1.setFillColor(sf::Color::White);
-	comPotrName1.setStyle(sf::Text::Bold);
-	comPotrName1.setPosition({ 50, 80 });
-
-	Textbox sendComPotrName(14, sf::Color::White, false);
-	sendComPotrName.setLimit(true, 4);
-	sendComPotrName.setFont(font);
-	sendComPotrName.setPosition({ 60, 110 });
-
-	sf::Text fullPathFolder1;
-	fullPathFolder1.setFont(font);
-	fullPathFolder1.setString("Enter the full path to the folder where the file is located and click '2':");
-	fullPathFolder1.setCharacterSize(16);
-	fullPathFolder1.setFillColor(sf::Color::White);
-	fullPathFolder1.setStyle(sf::Text::Bold);
-	fullPathFolder1.setPosition({ 50, 160 });
-
-	Textbox sendFullPath(14, sf::Color::White, false);
-	sendFullPath.setLimit(false);
-	sendFullPath.setFont(font);
-	sendFullPath.setPosition({ 60, 190 });
-
-	sf::Text nameFile1;
-	nameFile1.setFont(font);
-	nameFile1.setString("Enter the file name and click '3':");
-	nameFile1.setCharacterSize(16);
-	nameFile1.setFillColor(sf::Color::White);
-	nameFile1.setStyle(sf::Text::Bold);
-	nameFile1.setPosition({ 50, 240 });
-
-	Textbox sendNameFile(14, sf::Color::White, false);
-	sendNameFile.setLimit(false);
-	sendNameFile.setFont(font);
-	sendNameFile.setPosition({ 60, 270 });
-
-	Button btn1("Enter", { 100, 50 }, 20, sf::Color::Green, sf::Color::Black);
-	btn1.setFont(font);
-	btn1.setPosition({ 650, 150 });
-
-	//////////////////////////////////////////////////////////////////////////////
-
 	sf::Text receiveAction;
 	receiveAction.setFont(font);
-	receiveAction.setString("Receiving a file via com port (click Space)");
+	receiveAction.setString("Receiving a file via com port");
 	receiveAction.setCharacterSize(20);
-	receiveAction.setFillColor(sf::Color::White);
+	receiveAction.setFillColor(sf::Color::Black);
 	receiveAction.setStyle(sf::Text::Bold | sf::Text::Underlined);
-	receiveAction.setPosition({ 40, 370 });
+	receiveAction.setPosition({ 40, 30 });
+	
+	sf::Text comPotrName;
+	comPotrName.setFont(font);
+	comPotrName.setString("Enter the name of the com port:");
+	comPotrName.setCharacterSize(16);
+	comPotrName.setFillColor(sf::Color::Black);
+	comPotrName.setStyle(sf::Text::Bold);
+	comPotrName.setPosition({ 50, 80 });
+	
+	Textbox boxComPotrName(14, sf::Color::Black, false);
+	boxComPotrName.setLimit(true, 4);
+	boxComPotrName.setFont(font);
+	boxComPotrName.setPosition({ 60, 110 });
+	
+	sf::Text fullPathFolder;
+	fullPathFolder.setFont(font);
+	fullPathFolder.setString("Enter the full path to the folder where the file is located:");
+	fullPathFolder.setCharacterSize(16);
+	fullPathFolder.setFillColor(sf::Color::Black);
+	fullPathFolder.setStyle(sf::Text::Bold);
+	fullPathFolder.setPosition({ 50, 160 });
+	
+	Textbox boxFullPath(14, sf::Color::Black, false);
+	boxFullPath.setLimit(false);
+	boxFullPath.setFont(font);
+	boxFullPath.setPosition({ 60, 190 });
+	
+	sf::Text nameFile;
+	nameFile.setFont(font);
+	nameFile.setString("Enter the file name:");
+	nameFile.setCharacterSize(16);
+	nameFile.setFillColor(sf::Color::Black);
+	nameFile.setStyle(sf::Text::Bold);
+	nameFile.setPosition({ 50, 240 });
+	
+	Textbox boxNameFile(14, sf::Color::Black, false);
+	boxNameFile.setLimit(false);
+	boxNameFile.setFont(font);
+	boxNameFile.setPosition({ 60, 270 });
+	
+	Button btn("Start", { 100, 50 }, 20, sf::Color(15, 153, 153), sf::Color::Black);
+	btn.setFont(font);
+	btn.setPosition({ 200, 360 });
 
-	sf::Text comPotrName2;
-	comPotrName2.setFont(font);
-	comPotrName2.setString("Enter the name of the com port and click '4':");
-	comPotrName2.setCharacterSize(16);
-	comPotrName2.setFillColor(sf::Color::White);
-	comPotrName2.setStyle(sf::Text::Bold);
-	comPotrName2.setPosition({ 50, 420 });
+	sf::Text errorData;
+    errorData.setFont(font);
+    errorData.setString("The data was entered incorrectly, please click 'Enter' try again.");
+    errorData.setCharacterSize(16);
+    errorData.setFillColor(sf::Color::Black);
+    errorData.setStyle(sf::Text::Bold);
+    errorData.setPosition({ 50, 500 });
 
-	Textbox receiveComPotrName(14, sf::Color::White, false);
-	receiveComPotrName.setLimit(true, 4);
-	receiveComPotrName.setFont(font);
-	receiveComPotrName.setPosition({ 60, 450 });
+	sf::Text exitText;
+	exitText.setFont(font);
+	exitText.setString("Click 'Escape' to return to the main menu");
+	exitText.setCharacterSize(16);
+	exitText.setFillColor(sf::Color::Black);
+	exitText.setStyle(sf::Text::Bold);
+	exitText.setPosition({ 950, 500 });
+	
 
-	sf::Text fullPathFolder2;
-	fullPathFolder2.setFont(font);
-	fullPathFolder2.setString("Enter the full path to the folder where the file is located and click '5':");
-	fullPathFolder2.setCharacterSize(16);
-	fullPathFolder2.setFillColor(sf::Color::White);
-	fullPathFolder2.setStyle(sf::Text::Bold);
-	fullPathFolder2.setPosition({ 50, 500 });
+	//////////////////////////////MENU///////////////////
+	while (isMenu)
+	{
+		menu1.setColor(sf::Color(15, 153, 153));
+		menu2.setColor(sf::Color(15, 153, 153));
+		menu3.setColor(sf::Color(15, 153, 153));
+		menuNum = 0;
+		window.clear(sf::Color(255, 255, 255));
 
-	Textbox receiveFullPath(14, sf::Color::White, false);
-	receiveFullPath.setLimit(false);
-	receiveFullPath.setFont(font);
-	receiveFullPath.setPosition({ 60, 530 });
+		if (sf::IntRect(100, 150, 300, 50).contains(sf::Mouse::getPosition(window))) { menu1.setColor(sf::Color::Magenta); menuNum = 1; }
+		if (sf::IntRect(100, 210, 300, 50).contains(sf::Mouse::getPosition(window))) { menu2.setColor(sf::Color::Magenta); menuNum = 2; }
+		if (sf::IntRect(100, 270, 300, 50).contains(sf::Mouse::getPosition(window))) { menu3.setColor(sf::Color::Magenta); menuNum = 3; }
 
-	sf::Text nameFile2;
-	nameFile2.setFont(font);
-	nameFile2.setString("Enter the file name and click '6':");
-	nameFile2.setCharacterSize(16);
-	nameFile2.setFillColor(sf::Color::White);
-	nameFile2.setStyle(sf::Text::Bold);
-	nameFile2.setPosition({ 50, 580 });
+		if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+		{
+			if (menuNum == 1) {
+				while (!sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) {
+					input1.setColor(sf::Color(222, 146, 146));
+					input2.setColor(sf::Color(222, 146, 146));
+					input3.setColor(sf::Color(222, 146, 146));
 
-	Textbox receiveNameFile(14, sf::Color::White, false);
-	receiveNameFile.setLimit(false);
-	receiveNameFile.setFont(font);
-	receiveNameFile.setPosition({ 60, 610 });
+					if (sf::IntRect(20, 80, 300, 60).contains(sf::Mouse::getPosition(window))) {
+						input1.setColor(sf::Color(191, 191, 191));
+						input2.setColor(sf::Color(222, 146, 146));
+						input3.setColor(sf::Color(222, 146, 146));
+						boxComPotrName.setSelected(true); 
+						boxFullPath.setSelected(false);
+						boxNameFile.setSelected(false);
+					} else if (sf::IntRect(20, 161, 300, 60).contains(sf::Mouse::getPosition(window))) {
+						input1.setColor(sf::Color(222, 146, 146));
+						input2.setColor(sf::Color(191, 191, 191));
+						input3.setColor(sf::Color(222, 146, 146));
+						boxComPotrName.setSelected(false);
+						boxFullPath.setSelected(true);
+						boxNameFile.setSelected(false);
+					} else if (sf::IntRect(20, 241, 300, 60).contains(sf::Mouse::getPosition(window))) {
+						input1.setColor(sf::Color(222, 146, 146));
+						input2.setColor(sf::Color(222, 146, 146));
+						input3.setColor(sf::Color(191, 191, 191));
+						boxComPotrName.setSelected(false);
+						boxFullPath.setSelected(false);
+						boxNameFile.setSelected(true);
+					} else {
+						boxComPotrName.setSelected(false);
+						boxFullPath.setSelected(false);
+						boxNameFile.setSelected(false);
+					}
 
-	Button btn2("Space", { 100, 50 }, 20, sf::Color::Blue, sf::Color::Black);
-	btn2.setFont(font);
-	btn2.setPosition({ 650, 490 });
+					sf::Event event;
+					while (window.pollEvent(event)) {
+						switch (event.type) {
 
+						case sf::Event::Closed:
+							window.close();
+						case sf::Event::TextEntered:
+							if (boxComPotrName.getSel())
+								boxComPotrName.typedOn(event);
+							else if (boxFullPath.getSel())
+								boxFullPath.typedOn(event);
+							else if (boxNameFile.getSel())
+								boxNameFile.typedOn(event);
+						case sf::Event::MouseMoved:
+							if (btn.isMouseOver(window)) {
+								btn.setBackColor(sf::Color(176, 43, 179));
+							}
+							else {
+								btn.setBackColor(sf::Color(15, 153, 153));
+							}
+							break;
+						case sf::Event::MouseButtonPressed:
+							if (btn.isMouseOver(window)) {
+								std::string portName = boxComPotrName.getText();
+								std::string fullPath = boxFullPath.getText();
+								std::string fileName = boxNameFile.getText();
+								if (!portName.empty() && !fullPath.empty() && !fileName.empty()) {
+									std::cout << "yes\n";
+								}
+								else {
+									window.draw(errorData);
+									window.display();
+									while (!sf::Keyboard::isKeyPressed(sf::Keyboard::Return));
 
-	//Main Loop:
-	while (window.isOpen()) {
+								}
+							}
+						}
+					}
+					window.clear(sf::Color(255, 255, 255));
 
-		sf::Event event;
+					window.draw(input1);
+					window.draw(input2);
+					window.draw(input3);
+					window.draw(sendAction);
+					window.draw(comPotrName);
+					boxComPotrName.drawTo(window);
+					window.draw(fullPathFolder);
+					boxFullPath.drawTo(window);
+					window.draw(nameFile);
+					boxNameFile.drawTo(window);
+					btn.drawTo(window);
+					window.draw(exitText);
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Return)) {
-			sendComPotrName.setSelected(true);
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num1)) { //change active Keyboard (no number)
-			sendComPotrName.setSelected(false);
-			sendFullPath.setSelected(true);
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num2)) {
-			sendFullPath.setSelected(false);
-			sendNameFile.setSelected(true);
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num3)) {
-			sendNameFile.setSelected(false);
-		}
-
-		//////////////////////////////////////////
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
-			receiveComPotrName.setSelected(true);
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num4)) { //change active Keyboard (no number)
-			receiveComPotrName.setSelected(false);
-			receiveFullPath.setSelected(true);
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num5)) {
-			receiveFullPath.setSelected(false);
-			receiveNameFile.setSelected(true);
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num6)) {
-			receiveNameFile.setSelected(false);
-		}
-
-		//Event Loop:
-		while (window.pollEvent(event)) {
-			switch (event.type) {
-
-			case sf::Event::Closed:
-				window.close();
-			case sf::Event::TextEntered:
-				if (sendComPotrName.getSel())
-					sendComPotrName.typedOn(event);
-				else if (sendFullPath.getSel())
-					sendFullPath.typedOn(event);
-				else 
-					sendNameFile.typedOn(event);
-
-				if (receiveComPotrName.getSel())
-					receiveComPotrName.typedOn(event);
-				else if (receiveFullPath.getSel())
-					receiveFullPath.typedOn(event);
-				else
-					receiveNameFile.typedOn(event);
-			case sf::Event::MouseMoved:
-				if (btn1.isMouseOver(window)) {
-					btn1.setBackColor(sf::Color::Magenta);
-				}
-				else {
-					btn1.setBackColor(sf::Color::Green);
-				}
-				if (btn2.isMouseOver(window)) {
-					btn2.setBackColor(sf::Color::Green);
-				}
-				else {
-					btn2.setBackColor(sf::Color::Blue);
-				}
-				break;
-			case sf::Event::MouseButtonPressed:
-				if (btn1.isMouseOver(window)) {
-					std::cout << "Hello " << sendComPotrName.getText() << "\n";
+					window.display();
 				}
 			}
+			if (menuNum == 2) { 
+
+				while (!sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) {
+
+					input1.setColor(sf::Color(222, 146, 146));
+					input2.setColor(sf::Color(222, 146, 146));
+					input3.setColor(sf::Color(222, 146, 146));
+
+					if (sf::IntRect(20, 80, 300, 60).contains(sf::Mouse::getPosition(window))) {
+						input1.setColor(sf::Color(191, 191, 191));
+						input2.setColor(sf::Color(222, 146, 146));
+						input3.setColor(sf::Color(222, 146, 146));
+						boxComPotrName.setSelected(true);
+						boxFullPath.setSelected(false);
+						boxNameFile.setSelected(false);
+					}
+					if (sf::IntRect(20, 161, 300, 60).contains(sf::Mouse::getPosition(window))) {
+						input1.setColor(sf::Color(222, 146, 146));
+						input2.setColor(sf::Color(191, 191, 191));
+						input3.setColor(sf::Color(222, 146, 146));
+						boxComPotrName.setSelected(false);
+						boxFullPath.setSelected(true);
+						boxNameFile.setSelected(false);
+					}
+					if (sf::IntRect(20, 241, 300, 60).contains(sf::Mouse::getPosition(window))) {
+						input1.setColor(sf::Color(222, 146, 146));
+						input2.setColor(sf::Color(222, 146, 146));
+						input3.setColor(sf::Color(191, 191, 191));
+						boxComPotrName.setSelected(false);
+						boxFullPath.setSelected(false);
+						boxNameFile.setSelected(true);
+					}
+
+					sf::Event event;
+					while (window.pollEvent(event)) {
+						switch (event.type) {
+
+						case sf::Event::Closed:
+							window.close();
+						case sf::Event::TextEntered:
+							if (boxComPotrName.getSel())
+								boxComPotrName.typedOn(event);
+							else if (boxFullPath.getSel())
+								boxFullPath.typedOn(event);
+							else if (boxNameFile.getSel())
+								boxNameFile.typedOn(event);
+						case sf::Event::MouseMoved:
+							if (btn.isMouseOver(window)) {
+								btn.setBackColor(sf::Color(176, 43, 179));
+							}
+							else {
+								btn.setBackColor(sf::Color(15, 153, 153));
+							}
+							break;
+						case sf::Event::MouseButtonPressed:
+							if (btn.isMouseOver(window)) {
+								std::string portName = boxComPotrName.getText();
+								std::string fullPath = boxFullPath.getText();
+								std::string fileName = boxNameFile.getText();
+								if (!portName.empty() && !fullPath.empty() && !fileName.empty()) {
+									std::cout << "yes\n";
+								}
+								else {
+									window.draw(errorData);
+									window.display();
+									while (!sf::Keyboard::isKeyPressed(sf::Keyboard::Return));
+
+								}
+							}
+						}
+					}
+					window.clear(sf::Color(255, 255, 255));
+
+					window.draw(input1);
+					window.draw(input2);
+					window.draw(input3);
+					window.draw(receiveAction);
+					window.draw(comPotrName);
+					boxComPotrName.drawTo(window);
+					window.draw(fullPathFolder);
+					boxFullPath.drawTo(window);
+					window.draw(nameFile);
+					boxNameFile.drawTo(window);
+					btn.drawTo(window);
+					window.draw(exitText);
+
+					window.display();
+				}
+			}
+			if (menuNum == 3) { window.close(); isMenu = false; }
+
 		}
-		window.clear();
 
-		window.draw(sendAction);
-		window.draw(comPotrName1);
-		sendComPotrName.drawTo(window);
-		window.draw(fullPathFolder1);
-		sendFullPath.drawTo(window);
-		window.draw(nameFile1);
-		sendNameFile.drawTo(window);
-		btn1.drawTo(window);
-
-		window.draw(receiveAction);
-		window.draw(comPotrName2);
-		receiveComPotrName.drawTo(window);
-		window.draw(fullPathFolder2);
-		receiveFullPath.drawTo(window);
-		window.draw(nameFile2);
-		receiveNameFile.drawTo(window);
-		btn2.drawTo(window);
+		window.draw(menuBg);
+		window.draw(menu1);
+		window.draw(menu2);
+		window.draw(menu3);
 
 		window.display();
 	}
+}
+
+int main() {
+	sf::RenderWindow window(sf::VideoMode(1376, 576), "Com port management");
+	menu(window);
+	//sf::RenderWindow window;
+	//
+	//sf::Vector2i centerWindow((sf::VideoMode::getDesktopMode().width / 2) - 445, (sf::VideoMode::getDesktopMode().height / 2) - 480);
+	//
+	//window.create(sf::VideoMode(900, 900), "Com port management", sf::Style::Titlebar | sf::Style::Close);
+	//window.setPosition(centerWindow);
+	//
+	//window.setKeyRepeatEnabled(true);
 }
