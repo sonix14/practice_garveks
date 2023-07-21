@@ -1,5 +1,4 @@
 #define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
-#define _CRT_SECURE_NO_WARNINGS
 
 #include "FTP.h"
 
@@ -171,74 +170,70 @@ void FTP::sendFile(const std::string& file, const std::string& portName) {
 }
 
 bool FTP::receiveFile(const std::string& portName, const std::string& folderPath, const std::string& fileName) {
-    char* dst = new char(1024);
-    char* dstSum = new char(1024);
-    unsigned long read = 0, size = 0;
-    int fullSize = 0;
-    unsigned long trialChecksum = 0, checksum = 0;
-    std::string fullChecksum;
-    std::vector<char> buffer;
-    int counter = 0;
-    bool successFlag = true;
-    DWORD dwSize = sizeof(APPROVAL);
 
     if (!openConnection(portName)) {
         std::cout << "Couldn't receive a file\n";
         return false;;
     }
 
+    char* dst = new char[1024];
+    unsigned long read = 0, size = 0;
+    std::size_t fullSize = 0;
+    int counter = 0;
+    unsigned long fullChecksum = 0, trialChecksum = 0, checksum = 0;
+    std::vector<char> buffer;
+    bool successFlag = true;
+    DWORD dwSize = sizeof(APPROVAL);
+
     port.readData(dst, read);
     fullSize = std::atoi(dst);
     if (fullSize <= 0) {
         std::cout << "Uncorrect size\n";
+        delete[] dst;
         return false;;
     }
     else
         std::cout << "Accepted size\n";
-    memset(dst, 0, read);
 
     port.readData(dst, read);
-    fullChecksum = dst;
-    size_t end = fullChecksum.find_first_of('\r');
-    fullChecksum = fullChecksum.substr(0, end);
-    if (fullChecksum.size() == 0) {
+    fullChecksum = std::atoll(dst);
+    if (fullChecksum <= 0) {
         std::cout << "Uncorrect checksum\n";
+        delete[] dst;
         return false;;
     }
     else
         std::cout << "Accepted checksum\n";
-    memset(dst, 0, read);
 
-    port.writeData(APPROVAL, dwSize); //give an answer about readiness to accept data
+
+    port.writeData(APPROVAL, dwSize);
     std::cout << "Ready to accept data\n";
 
+    char* dstSum = new char[1024];
     while (true) {
         if (counter == MAX_ERROR) {
             std::cout << "Too much tries for one fragment!\n";
             closeConnection();
             successFlag = false;
-            counter = 0;
             break;
         }
         port.readData(dst, read); //fragment
-        size = read - 1;
+        size = read - 1;  //!!!!!!!!!!!!!!!!!!!!!!
         trialChecksum = calculateChecksumCRC16(dst, size);
         std::cout << "Accepted fragment\n";
 
         port.readData(dstSum, read); // checksum
-        checksum = std::atoi(dstSum);
+        checksum = std::atoll(dstSum);
         std::cout << "Accepted checksum\n";
-        memset(dstSum, 0, read);
         if (trialChecksum != checksum) {
-            //uncorrect fragment
             std::cout << "The fragment was not accepted successfully! Try again\n";
-            port.writeData(REJECTION, dwSize); //give an answer
+            port.writeData(REJECTION, dwSize);
             counter++;
             continue;
         }
         else {
             std::cout << "The fragment was accepted successfully\n";
-            port.writeData(APPROVAL, dwSize);  //give an answer      
+            port.writeData(APPROVAL, dwSize);
             for (int i = 0; i < size; i++) {
                 buffer.push_back(dst[i]);
             }
@@ -251,26 +246,17 @@ bool FTP::receiveFile(const std::string& portName, const std::string& folderPath
             delete[] array;
             counter = 0;
         }
-        memset(dst, 0, read);
-        std::string temp = std::to_string(trialChecksum);
-        /*
-        if (trialChecksum > fullChecksum) {
-            std::cout << "Too much fragments\n";
-            port.writeData(REJECTION);  //give an answer
-            successFlag = false;
-            closeConnection();
-            break;
-        } else
-        */
-        if (fullChecksum.compare(temp) == 0) {
+        if (fullChecksum == trialChecksum) {
             std::cout << "The file was accepted successfully!\n";
-            port.writeData(APPROVAL, dwSize);  //give an answer about succsessful acceptance
+            port.writeData(APPROVAL, dwSize);
             successFlag = true;
             closeConnection();
             break;
         }
     }
 
+    delete[] dst;
+    delete[] dstSum;
     if (successFlag) {
         //write file into the folder
         std::error_code e;
@@ -278,15 +264,15 @@ bool FTP::receiveFile(const std::string& portName, const std::string& folderPath
         bool flag = fs::create_directories(dir, e);
         fs::current_path(dir);
         FILE* fp;
-        if ((fp = fopen(fileName.c_str(), "w")) != NULL) {  //rb+
+        if ((fopen_s(&fp, fileName.c_str(), "w")) == 0) {  //rb+
             for (int i = 0; i < buffer.size(); i++) {
                 fputc(buffer[i], fp);
-                if (feof(fp))
+                if (feof(fp)) {
+                    std::cout << "Couldn't write to the new file\n";
                     break;
+                }
             }
-            if (feof(fp))
-                std::cout << "Couldn't write to the new file\n";
-            else
+            if (!feof(fp))
                 std::cout << "File was written to the folder\n";
             fclose(fp);
         }
@@ -295,7 +281,10 @@ bool FTP::receiveFile(const std::string& portName, const std::string& folderPath
         }
         return true;
     }
-    return false;
+    else {
+        std::cout << "The file was not accepted!\n";
+        return false;
+    }
 }
 
 /*We describe the Crc32 calculation function
