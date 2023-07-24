@@ -3,6 +3,8 @@
 #include "Textbox.h"
 #include "Button.h"
 
+#include "FTP.h"
+
 void menu(sf::RenderWindow& window) {
 	sf::Texture menuTexture1, menuTexture2, menuTexture3, aboutTexture, menuBackground, inputText;
 	menuTexture1.loadFromFile("images/send.png");

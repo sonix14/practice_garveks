@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TEXT_BOX
+#define TEXT_BOX
 
 #include <iostream>
 #include <sstream>
@@ -118,3 +119,5 @@ private:
 		textbox.setString(text.str() + "_");
 	}
 };
+
+#endif // !TEXT_BOX

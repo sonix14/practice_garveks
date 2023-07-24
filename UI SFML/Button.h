@@ -1,4 +1,5 @@
-#pragma once
+#ifndef BUTTON
+#define BUTTON
 
 #include <iostream>
 #include <SFML/Graphics.hpp>
@@ -66,3 +67,4 @@ private:
 	int btnWidth;
 	int btnHeight;
 };
+#endif
