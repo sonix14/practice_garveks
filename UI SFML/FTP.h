@@ -2,7 +2,18 @@
 #define FTP_H
 
 #include "COM_PORT_INIT.h"
-//#include "Observer.h"
+#include <vector>
+//#include <SFML/Graphics.hpp>
+
+const std::string END = "\r";
+
+class IObserver
+{
+public:
+	virtual ~IObserver();
+	virtual void update() = 0;
+};
+
 
 class FTP //file transfer protocol
 {
@@ -10,29 +21,19 @@ public:
 	bool openConnection(const std::string& portName);
 	void closeConnection();
 
-	virtual void sendFile(const std::string& file, const std::string& portName);
+	virtual void sendFile(const std::string& portName, const std::string& file);
 	virtual bool receiveFile(const std::string& portName, const std::string& folderPath, const std::string& fileName);
-
-	void attach(Observer* obs) {
-		views.push_back(obs);
-	}
-	void setState(std::string str) {
-		state = str;
-		notify();
-	}
-	std::string getState() {
-		return state;
-	}
-	void notify() {
-		for (int i = 0; i < views.size(); i++)
-			views[i]->update();
-	}
-
+	
+	void attach(IObserver* obs);
+	void setState(std::string str);
+	std::string getState();
+	void notify();
+	
 private:
 	Com_port port;
 	const int MAX_ERROR = 3;
 	std::string state;
-	std::vector<class Observer*> views;
+	std::vector<IObserver* > views;
 
 	unsigned long calculateChecksumCRC32(unsigned char* mass, unsigned long count);
 	unsigned short calculateChecksumCRC16(char* mass, unsigned long count);
@@ -40,20 +41,27 @@ private:
 	bool getAnswer(char* elem, unsigned long& read);
 };
 
-
-class Observer
+class Observer : public IObserver
 {
 public:
 	FTP* model;
+	//sf::Text* text;
 	int denom;
-public:
-	Observer(FTP* mod, int div) {
+	bool flag = true;
+
+	Observer(FTP* mod, int div) { //sf::Text* txt
 		model = mod;
 		denom = div;
-		// 4. Наблюдатели регистрируются у субъекта
+		//text = txt;
 		model->attach(this);
 	}
-	virtual void update() = 0;
+	void update() override {
+		//std::string prev = text->getString();
+		std::string str = getSubject()->getState();
+		//text->setString(prev + str);
+		if (str == END)
+			flag = false;
+	}
 protected:
 	FTP* getSubject() {
 		return model;
