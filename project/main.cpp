@@ -1,14 +1,8 @@
-#include "COM_PORT_INIT.h"
-#include <stdio.h>
-#include <iostream>
-#include "FTP.h"
+#include "Àpplication.h"
+#include <SFML/Graphics.hpp>
+
 
 int main() {
-	FTP obj;
-	const std::string portName = "COM1";
-	const std::string folderPath = "C:/folder";
-	const std::string fileName = "C:/My/garveks/hello1.txt";
-
-	//obj.receiveFile(portName, folderPath, "test.txt");
-	obj.sendFile(fileName, portName);
+	sf::RenderWindow window(sf::VideoMode(1376, 576), "Com port management");
+	GUI::menu(window);
 }

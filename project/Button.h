@@ -19,7 +19,7 @@ public:
 		text.setFillColor(textColor);
 	}
 
-	void setFont(sf::Font &fonts) {
+	void setFont(sf::Font& fonts) {
 		text.setFont(fonts);
 	}
 
@@ -39,12 +39,12 @@ public:
 		text.setPosition(xPos, yPos);
 	}
 
-	void drawTo(sf::RenderWindow &window) {
+	void drawTo(sf::RenderWindow& window) {
 		window.draw(button);
 		window.draw(text);
 	}
 
-	bool isMouseOver(sf::RenderWindow &window) {
+	bool isMouseOver(sf::RenderWindow& window) {
 		int mouseX = sf::Mouse::getPosition(window).x;
 		int mouseY = sf::Mouse::getPosition(window).y;
 

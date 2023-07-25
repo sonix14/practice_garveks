@@ -18,10 +18,10 @@ bool Com_port::openPort(const std::string& port, const int* baudrate) {
 
     closePort();
     wchar_t* wPort = convertToLPCTSTR(port);
-    LPCTSTR portName = wPort;  // L"COM1";
+    LPCTSTR portName = wPort;
     cPort = CreateFile(portName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL); // 0 instead of FILE_ATTRIBUTE_NORMAL means there will be synchronous transmission
     if (cPort == INVALID_HANDLE_VALUE) {
-        std::cout << "Comm Port was not open successfully\n";
+        //std::cout << "Comm Port was not open successfully\n";
         DWORD dw = GetLastError();
         std::cout << std::to_string(dw) << "\n";
         CloseHandle(cPort);
@@ -30,13 +30,13 @@ bool Com_port::openPort(const std::string& port, const int* baudrate) {
     }
     else {
         if (installPortSettings(baudrate) && installPortTimeouts()) {
-            std::cout << "Comm Port will be opened successfully\n";
+            //std::cout << "Comm Port will be opened successfully\n";
             return true;
         }
         else {
             CloseHandle(cPort);
             cPort = INVALID_HANDLE_VALUE;
-            std::cout << "Comm Port was not open successfully\n";
+            //std::cout << "Comm Port was not open successfully\n";
             return false;
         }
     }
@@ -46,7 +46,7 @@ bool Com_port::installPortSettings(const int* baudrate) {
     DCB PortDCB = { 0 };
     PortDCB.DCBlength = sizeof(DCB); // getting the default information of the DCB structure
     if (!GetCommState(cPort, &PortDCB)) {
-        std::cout << "GetCommState failed with error %d.\n " << std::to_string(GetLastError());
+        //std::cout << "GetCommState failed with error %d.\n " << std::to_string(GetLastError());
         return false;
     }
     // initialization of port parameters by setting values of DCB structure fields
@@ -57,8 +57,8 @@ bool Com_port::installPortSettings(const int* baudrate) {
     PortDCB.StopBits = ONESTOPBIT;
 
     if (!SetCommState(cPort, &PortDCB)) {
-        std::cout << "Unable to configure the serial port\n";
-        std::cout << "SetCommState failed with error %d.\n " << std::to_string(GetLastError());
+        //std::cout << "Unable to configure the serial port\n";
+        //std::cout << "SetCommState failed with error %d.\n " << std::to_string(GetLastError());
         return false;
     }
     return true;
@@ -67,7 +67,7 @@ bool Com_port::installPortSettings(const int* baudrate) {
 bool Com_port::installPortTimeouts() {
     COMMTIMEOUTS CommTimeouts;
     if (!GetCommTimeouts(cPort, &CommTimeouts)) {
-        std::cout << "GetCommTimeouts failed with error %d.\n " << std::to_string(GetLastError());
+        //std::cout << "GetCommTimeouts failed with error %d.\n " << std::to_string(GetLastError());
         return false;
     }
     CommTimeouts.ReadIntervalTimeout = 0xFFFFFFFF; // maximum time between reading two characters
@@ -78,29 +78,33 @@ bool Com_port::installPortTimeouts() {
 
     if (!SetCommTimeouts(cPort, &CommTimeouts))
     {
-        std::cout << "Unable to set the timeout parameters\n";
-        std::cout << "SetCommTimeouts failed with error %d.\n " << std::to_string(GetLastError());
+        //std::cout << "Unable to set the timeout parameters\n";
+        //std::cout << "SetCommTimeouts failed with error %d.\n " << std::to_string(GetLastError());
         return false;
     }
     return true;
 }
 
-void Com_port::closePort() {
+bool Com_port::closePort() {
     if (cPort != INVALID_HANDLE_VALUE) {
         CloseHandle(cPort);
         cPort = INVALID_HANDLE_VALUE;
-        std::cout << "Comm Port will be closed successfully\n";
+        //std::cout << "Comm Port will be closed successfully\n";
+        return true;
     }
+    return false;
 }
 
-void Com_port::writeData(const char* data, const DWORD& dwSize) {
+bool Com_port::writeData(const char* data, const DWORD& dwSize) {
     DWORD dwBytesWritten;
     BOOL iRet = WriteFile(cPort, &data, dwSize, &dwBytesWritten, NULL);
     if (!iRet || dwBytesWritten != dwSize) {
         CloseHandle(cPort);
-        cPort = INVALID_HANDLE_VALUE; 
-        std::cout << "Error writing file size to port\n";
+        cPort = INVALID_HANDLE_VALUE;
+        //std::cout << "Error writing file size to port\n";
+        return false;
     }
+    return true;
 }
 
 bool Com_port::readData(char* dst, unsigned long& read) {
@@ -120,7 +124,7 @@ bool Com_port::readData(char* dst, unsigned long& read) {
             if (wait == WAIT_OBJECT_0) {
                 if (GetOverlappedResult(cPort, &sync, &read, FALSE)) {
                     result = read;
-                    /*----------*/
+                    /*---------------------------------------*/
                     if (result != 0) {
                         CloseHandle(sync.hEvent);
                         return true;
@@ -133,7 +137,7 @@ bool Com_port::readData(char* dst, unsigned long& read) {
                             return false;
                         }
                     }
-                    /*----------*/
+                    /*---------------------------------------*/
                 }
             }
         }

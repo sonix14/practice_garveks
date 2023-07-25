@@ -23,7 +23,7 @@ public:
 			textbox.setString("");
 	}
 
-	void setFont(sf::Font &fonts) {
+	void setFont(sf::Font& fonts) {
 		textbox.setFont(fonts);
 	}
 
@@ -67,7 +67,7 @@ public:
 		return text.str();
 	}
 
-	void drawTo(sf::RenderWindow &window) {
+	void drawTo(sf::RenderWindow& window) {
 		window.draw(textbox);
 	}
 
@@ -79,10 +79,12 @@ public:
 				if (hasLimit) {
 					if (text.str().length() <= limit) {
 						inputLogic(charTyped);
-					} else if (text.str().length() > limit && charTyped == DELETE_KEY) {
+					}
+					else if (text.str().length() > limit && charTyped == DELETE_KEY) {
 						deleteLastChar();
 					}
-				} else {
+				}
+				else {
 					inputLogic(charTyped);
 				}
 			}
@@ -100,7 +102,8 @@ private:
 	void inputLogic(int charTyped) {
 		if (charTyped != DELETE_KEY && charTyped != ENTER_KEY && charTyped != ESCAPE_KEY) {
 			text << static_cast<char>(charTyped);
-		} else if (charTyped == DELETE_KEY) {
+		}
+		else if (charTyped == DELETE_KEY) {
 			if (text.str().length() > 0) {
 				deleteLastChar();
 			}
@@ -120,4 +123,4 @@ private:
 	}
 };
 
-#endif // !TEXT_BOX
+#endif
