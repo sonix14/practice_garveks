@@ -26,6 +26,13 @@ void menu(sf::RenderWindow& window) {
 	sf::Font font;
 	font.loadFromFile("ArialMT.ttf");
 
+	sf::Text output;
+	output.setFont(font);
+	output.setCharacterSize(20);
+	output.setFillColor(sf::Color::Black);
+	output.setStyle(sf::Text::Bold | sf::Text::Underlined);
+	//output.setPosition({ 40, 30 });
+
 	sf::Text sendAction;
 	sendAction.setFont(font);
 	sendAction.setString("Sending a file via com port");
@@ -182,6 +189,15 @@ void menu(sf::RenderWindow& window) {
 								if (!portName.empty() && !fullPath.empty() && !fileName.empty()) {
 									std::string fullName = fullPath + "/" + fileName;
 									std::cout << "yes\n";
+									/*
+									FTP protocol;
+									Observer obs(&protocol, 1, &output);
+									protocol.sendFile(portName, fileName);
+									while (obs.flag) {
+										window.draw(output);
+										window.display();
+									}
+									*/
 								} else {
 									window.draw(errorData);
 									window.display();
@@ -271,7 +287,15 @@ void menu(sf::RenderWindow& window) {
 								std::string fileName = boxNameFile.getText();
 								if (!portName.empty() && !fullPath.empty() && !fileName.empty()) {
 									std::cout << "yes\n";
-
+									/*
+									FTP protocol;
+									Observer obs(&protocol, 1, &output);
+									protocol.receiveFile(portName, fullPath, fileName);
+									while (obs.flag) {
+										window.draw(output);
+										window.display();
+									}
+									*/
 								} else {
 									window.draw(errorData);
 									window.display();

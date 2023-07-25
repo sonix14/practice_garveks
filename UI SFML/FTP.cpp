@@ -10,33 +10,50 @@
 #include <vector>
 
 #include <experimental/filesystem>
-#include <SFML/Graphics.hpp>
 
 char APPROVAL[1] = { 'y' };
 char REJECTION[1] = { 'n' };
 namespace fs = std::experimental::filesystem;
 
+void FTP::attach(IObserver* obs) {
+    views.push_back(obs);
+}
+void FTP::setState(std::string str) {
+    state = str;
+    notify();
+}
+std::string FTP::getState() {
+    return state;
+}
+void FTP::notify() {
+    for (int i = 0; i < views.size(); i++)
+        views[i]->update();
+}
+
 bool FTP::openConnection(const std::string& portName) {
     int baudrate = 9600;
     if (port.openPort(portName, &baudrate)) {
-        std::cout << "Port (" << portName << ") was opened\n";
+        setState("Port (" + portName + ") was opened\n");
         return true;
     }
     else {
-        std::cout << "Port (" << portName << ") was not opened\n";
+        setState("Port (" + portName + ") was not opened\n");
         return false;
     }
 }
 
 void FTP::closeConnection() {
-    port.closePort();
-    std::cout << "The connection is closed.\n";
+    if(port.closePort())
+        setState("The connection is closed.\n");
+    else
+        setState("The connection couldn't be closed.\n");
 }
 
-void FTP::sendFile(const std::string& file, const std::string& portName) {
+void FTP::sendFile(const std::string& portName, const std::string& file) {
 
     if (!openConnection(portName)) {
-        std::cout << "Couldn't recieve a file\n";
+        setState("Couldn't send file\n");
+        setState(END);
         return;
     }
 
@@ -46,7 +63,7 @@ void FTP::sendFile(const std::string& file, const std::string& portName) {
     std::ifstream in;
     in.open(file, std::ifstream::ate | std::ifstream::binary);
     unsigned long file_size = in.tellg();
-    std::cout << "Rope Weight : " << file_size << " byte" << "\n";
+    setState("Rope weight : " + std::to_string(file_size) + " byte\n");
     std::string s_file_size = std::to_string(file_size);
     char* ch_file_size = new char[s_file_size.length()];
     ch_file_size = const_cast<char*>(s_file_size.c_str());
@@ -64,7 +81,7 @@ void FTP::sendFile(const std::string& file, const std::string& portName) {
         fclose(read_all_file);
 
         unsigned long check_sum = calculateChecksumCRC32(mass_all_file, count);
-        std::cout << "CRC32 = " << check_sum << "\n";
+        setState("CRC32 = " + std::to_string(check_sum) + "\n");
         std::string s_check_sum = std::to_string(check_sum);
         char* ch_check_sum = new char[s_check_sum.length()];
         ch_check_sum = const_cast<char*>(s_check_sum.c_str());
@@ -72,21 +89,23 @@ void FTP::sendFile(const std::string& file, const std::string& portName) {
         port.writeData(ch_check_sum, dwSize);
     }
     else {
-        std::cout << "File not found\n";
+        setState("File not found\n");
         closeConnection();
         delete[] mass_all_file;
+        setState(END);
         return;
     }
     delete[] mass_all_file;
 
-    std::cout << "Requesting permission to transfer data\n";
+    setState("Requesting permission to transfer data\n");
     if (!getAnswer(elem, read)) {
-        std::cout << "Permission was not received\n";
+        setState("Permission was not received\n");
         closeConnection();
+        setState(END);
         return;
     }
 
-    std::cout << "Start sent data\n";
+    setState("Start sending data\n");
     unsigned long buff = file_size;
     FILE* fp;
     fopen_s(&fp, file_name, "r");
@@ -95,8 +114,9 @@ void FTP::sendFile(const std::string& file, const std::string& portName) {
     int count_error = 0;
     bool correct_fragment;
     if (!fp) {
-        std::cout << "File not found\n";
+        setState("File was not found\n");
         closeConnection();
+        setState(END);
         return;
     }
     while (buff > fragment_size && count_error != MAX_ERROR) {
@@ -110,7 +130,7 @@ void FTP::sendFile(const std::string& file, const std::string& portName) {
             dwSize = sizeof(mass_fragment);
             port.writeData(mass_fragment, dwSize);
             unsigned short check_sum = calculateChecksumCRC16(mass_fragment, fragment_size);
-            std::cout << "CRC16 = " << check_sum << "   ";
+            setState("CRC16 = " + std::to_string(check_sum) + "   ");
             std::string s_check_sum = std::to_string(check_sum);
             char* ch_check_sum = new char[s_check_sum.length()];
             ch_check_sum = const_cast<char*>(s_check_sum.c_str());
@@ -118,18 +138,19 @@ void FTP::sendFile(const std::string& file, const std::string& portName) {
             port.writeData(ch_check_sum, dwSize);
             if (getAnswer(elem, read)) {
                 correct_fragment = true;
-                std::cout << "The fragment was sent and received correctly\n";
+                setState("The fragment was sent and received correctly\n");
             }
             else {
                 correct_fragment = false;
-                std::cout << "The fragment was sent and received incorrectly, I try again\n";
+                setState("The fragment was sent and received incorrectly, I try again\n");
             }
         }
     }
     if (count_error == MAX_ERROR) {
-        std::cout << "Error! The file was sent and received incorrectly\n";
+        setState("Error! The file was sent and received incorrectly\n");
         closeConnection();
         fclose(fp);
+        setState(END);
         return;
     }
     unsigned long endPart_fragment_size = buff;
@@ -144,7 +165,7 @@ void FTP::sendFile(const std::string& file, const std::string& portName) {
         dwSize = sizeof(endPart_mass_fragment);
         port.writeData(endPart_mass_fragment, dwSize);
         unsigned short check_sum = calculateChecksumCRC16(endPart_mass_fragment, endPart_fragment_size);
-        std::cout << "CRC16 = " << check_sum << "   ";
+        setState("CRC16 = " + std::to_string(check_sum) + "   ");
         std::string s_check_sum = std::to_string(check_sum);
         char* ch_check_sum = new char[s_check_sum.length()];
         ch_check_sum = const_cast<char*>(s_check_sum.c_str());
@@ -152,28 +173,30 @@ void FTP::sendFile(const std::string& file, const std::string& portName) {
         port.writeData(ch_check_sum, dwSize);
         if (getAnswer(elem, read)) {
             correct_fragment = true;
-            std::cout << "The fragment was sent and received correctly\n";
+            setState("The fragment was sent and received correctly\n");
         }
         else {
             correct_fragment = false;
-            std::cout << "The fragment was sent and received incorrectly, I try again\n";
+            setState("The fragment was sent and received incorrectly, I try again\n");
         }
     }
     if (count_error != MAX_ERROR && getAnswer(elem, read)) {
-        std::cout << "The file was successfully accepted sent and accepted by the second party\n";
+        setState("The file was successfully accepted sent and accepted by the second party\n");
     }
     else {
-        std::cout << "Error! The file was sent and received incorrectly\n";
+        setState("Error! The file was sent and received incorrectly\n");
     }
     delete[] endPart_mass_fragment;
     fclose(fp);
     closeConnection();
+    setState(END);
 }
 
 bool FTP::receiveFile(const std::string& portName, const std::string& folderPath, const std::string& fileName) {
 
     if (!openConnection(portName)) {
-        std::cout << "Couldn't receive a file\n";
+        setState("Couldn't receive a file\n");
+        setState(END);
         return false;;
     }
 
@@ -189,31 +212,33 @@ bool FTP::receiveFile(const std::string& portName, const std::string& folderPath
     port.readData(dst, read);
     fullSize = std::atoi(dst);
     if (fullSize <= 0) {
-        std::cout << "Uncorrect size\n";
+        setState("Uncorrect size\n");
         delete[] dst;
+        setState(END);
         return false;;
     }
     else
-        std::cout << "Accepted size\n";
+        setState("Accepted size: " + std::to_string(fullSize) + "\n");
 
     port.readData(dst, read);
     fullChecksum = std::atoll(dst);
     if (fullChecksum <= 0) {
-        std::cout << "Uncorrect checksum\n";
+        setState("Uncorrect checksum\n");
         delete[] dst;
+        setState(END);
         return false;;
     }
     else
-        std::cout << "Accepted checksum\n";
+        setState("Accepted checksum: " + std::to_string(fullChecksum) + "\n");
 
 
     port.writeData(APPROVAL, dwSize);
-    std::cout << "Ready to accept data\n";
+    setState("Ready to accept data\n");
 
     char* dstSum = new char[1024];
     while (true) {
         if (counter == MAX_ERROR) {
-            std::cout << "Too much tries for one fragment!\n";
+            setState("Too much tries for one fragment!\n");
             closeConnection();
             successFlag = false;
             break;
@@ -221,19 +246,19 @@ bool FTP::receiveFile(const std::string& portName, const std::string& folderPath
         port.readData(dst, read); //fragment
         size = read - 1;  //!!!!!!!!!!!!!!!!!!!!!!
         trialChecksum = calculateChecksumCRC16(dst, size);
-        std::cout << "Accepted fragment\n";
+        setState("Accepted fragment\n");
 
         port.readData(dstSum, read); // checksum
         checksum = std::atoll(dstSum);
         std::cout << "Accepted checksum\n";
         if (trialChecksum != checksum) {
-            std::cout << "The fragment was not accepted successfully! Try again\n";
+            setState("The fragment was not accepted successfully! Try again\n");
             port.writeData(REJECTION, dwSize);
             counter++;
             continue;
         }
         else {
-            std::cout << "The fragment was accepted successfully\n";
+            setState("The fragment was accepted successfully\n");
             port.writeData(APPROVAL, dwSize);
             for (int i = 0; i < size; i++) {
                 buffer.push_back(dst[i]);
@@ -248,7 +273,7 @@ bool FTP::receiveFile(const std::string& portName, const std::string& folderPath
             counter = 0;
         }
         if (fullChecksum == trialChecksum) {
-            std::cout << "The file was accepted successfully!\n";
+            setState("The file was accepted successfully!\n");
             port.writeData(APPROVAL, dwSize);
             successFlag = true;
             closeConnection();
@@ -269,21 +294,23 @@ bool FTP::receiveFile(const std::string& portName, const std::string& folderPath
             for (int i = 0; i < buffer.size(); i++) {
                 fputc(buffer[i], fp);
                 if (feof(fp)) {
-                    std::cout << "Couldn't write to the new file\n";
+                    setState("Couldn't write to the new file\n");
                     break;
                 }
             }
             if (!feof(fp))
-                std::cout << "File was written to the folder\n";
+                setState("File was written to the folder\n");
             fclose(fp);
         }
         else {
-            std::cout << "Couldn't write to the new file\n";
+            setState("Couldn't write to the new file\n");
         }
+        setState(END);
         return true;
     }
     else {
-        std::cout << "The file was not accepted!\n";
+        setState("The file was not accepted!\n");
+        setState(END);
         return false;
     }
 }
@@ -325,10 +352,8 @@ unsigned short FTP::calculateChecksumCRC16(char* mass, unsigned long count) {
 
 bool FTP::getAnswer(char* elem, unsigned long& read) {
     port.readData(elem, read);
-    if (elem[0] == APPROVAL[0]) {
+    if (elem[0] == APPROVAL[0])
         return true;
-    }
-    else if (elem[0] == REJECTION[0]) {
-        return false;
-    }            
+    else if (elem[0] == REJECTION[0])
+        return false;         
 }

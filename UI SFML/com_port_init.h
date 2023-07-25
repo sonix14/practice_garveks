@@ -11,9 +11,9 @@ struct Com_port {
     virtual ~Com_port();
 
     bool openPort(const std::string& port, const int* baudrate);
-    void closePort();
+    bool closePort();
 
-    virtual void writeData(const char* data, const DWORD& dwSize);
+    virtual bool writeData(const char* data, const DWORD& dwSize);
     virtual bool readData(char* dst, unsigned long& read);
 
 private:
