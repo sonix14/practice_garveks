@@ -1,16 +1,14 @@
 #ifndef FTP_H
 #define FTP_H
+#define NOMINMAX
 
 #include "COM_PORT_INIT.h"
 #include <vector>
-//#include <SFML/Graphics.hpp>
-
-const std::string END = "\r";
+#include <SFML/Graphics.hpp>
 
 class IObserver
 {
 public:
-	virtual ~IObserver();
 	virtual void update() = 0;
 };
 
@@ -24,10 +22,12 @@ public:
 	virtual void sendFile(const std::string& portName, const std::string& file);
 	virtual bool receiveFile(const std::string& portName, const std::string& folderPath, const std::string& fileName);
 	
+	/*methods for implementing the observer pattern*/
 	void attach(IObserver* obs);
 	void setState(std::string str);
 	std::string getState();
 	void notify();
+	/*---------------------------------------------*/
 	
 private:
 	Com_port port;
@@ -45,29 +45,28 @@ class Observer : public IObserver
 {
 public:
 	FTP* model;
-	//sf::Text* text;
-	int denom;
-	bool flag = true;
+	sf::Text* text;
+	sf::RenderWindow* window;
 
-	Observer(FTP* mod, int div) { //sf::Text* txt
+	Observer(FTP* mod, sf::Text* txt, sf::RenderWindow* wind) {
 		model = mod;
-		denom = div;
-		//text = txt;
+		text = txt;
+		window = wind;
 		model->attach(this);
 	}
+
 	void update() override {
-		//std::string prev = text->getString();
+		std::string prev = text->getString();
 		std::string str = getSubject()->getState();
-		//text->setString(prev + str);
-		if (str == END)
-			flag = false;
+		text->setString(prev + str);
+		window->draw(*text);
+		window->display();
+		while (!sf::Keyboard::isKeyPressed(sf::Keyboard::Return));
 	}
+
 protected:
 	FTP* getSubject() {
 		return model;
-	}
-	int getDivisor() {
-		return denom;
 	}
 };
 #endif

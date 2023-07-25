@@ -18,7 +18,7 @@ bool Com_port::openPort(const std::string& port, const int* baudrate) {
 
     closePort();
     wchar_t* wPort = convertToLPCTSTR(port);
-    LPCTSTR portName = wPort;  // L"COM1";
+    LPCTSTR portName = wPort;
     cPort = CreateFile(portName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL); // 0 instead of FILE_ATTRIBUTE_NORMAL means there will be synchronous transmission
     if (cPort == INVALID_HANDLE_VALUE) {
         //std::cout << "Comm Port was not open successfully\n";
