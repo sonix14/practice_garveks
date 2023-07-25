@@ -28,10 +28,9 @@ void menu(sf::RenderWindow& window) {
 
 	sf::Text output;
 	output.setFont(font);
-	output.setCharacterSize(20);
+	output.setCharacterSize(15);
 	output.setFillColor(sf::Color::Black);
-	output.setStyle(sf::Text::Bold | sf::Text::Underlined);
-	//output.setPosition({ 40, 30 });
+	output.setPosition({ 750, 30 });
 
 	sf::Text sendAction;
 	sendAction.setFont(font);
@@ -188,16 +187,9 @@ void menu(sf::RenderWindow& window) {
 								std::string fileName = boxNameFile.getText();
 								if (!portName.empty() && !fullPath.empty() && !fileName.empty()) {
 									std::string fullName = fullPath + "/" + fileName;
-									std::cout << "yes\n";
-									/*
 									FTP protocol;
-									Observer obs(&protocol, 1, &output);
-									protocol.sendFile(portName, fileName);
-									while (obs.flag) {
-										window.draw(output);
-										window.display();
-									}
-									*/
+									Observer obs(&protocol, &output, &window);
+									protocol.sendFile(portName, fullName);
 								} else {
 									window.draw(errorData);
 									window.display();
@@ -286,16 +278,9 @@ void menu(sf::RenderWindow& window) {
 								std::string fullPath = boxFullPath.getText();
 								std::string fileName = boxNameFile.getText();
 								if (!portName.empty() && !fullPath.empty() && !fileName.empty()) {
-									std::cout << "yes\n";
-									/*
 									FTP protocol;
-									Observer obs(&protocol, 1, &output);
+									Observer obs(&protocol, &output, &window);
 									protocol.receiveFile(portName, fullPath, fileName);
-									while (obs.flag) {
-										window.draw(output);
-										window.display();
-									}
-									*/
 								} else {
 									window.draw(errorData);
 									window.display();
