@@ -2,7 +2,7 @@
 #define FTP_H
 #define NOMINMAX
 
-#include "COM_PORT_INIT.h"
+#include "ComPort.h"
 #include <vector>
 #include <SFML/Graphics.hpp>
 
@@ -30,10 +30,10 @@ public:
 	/*---------------------------------------------*/
 
 private:
-	Com_port port;
+	ComPort port;
 	const int MAX_ERROR = 3;
 	std::string state;
-	std::vector<IObserver* > views;
+	IObserver* viewer;
 
 	unsigned long calculateChecksumCRC32(unsigned char* mass, unsigned long count);
 	unsigned short calculateChecksumCRC16(char* mass, unsigned long count);
@@ -61,7 +61,6 @@ public:
 		text->setString(prev + str);
 		window->draw(*text);
 		window->display();
-		while (!sf::Keyboard::isKeyPressed(sf::Keyboard::Return));
 	}
 
 protected:

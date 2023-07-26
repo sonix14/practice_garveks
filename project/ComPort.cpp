@@ -1,4 +1,4 @@
-#include "COM_PORT_INIT.h"
+#include "ComPort.h"
 
 #include <windows.h>
 #include <iostream>
@@ -6,15 +6,15 @@
 #include <algorithm>
 #include <vector>
 
-Com_port::Com_port() {
+ComPort::ComPort() {
     cPort = INVALID_HANDLE_VALUE;
 }
 
-Com_port::~Com_port() {
+ComPort::~ComPort() {
     closePort();
 }
 
-bool Com_port::openPort(const std::string& port, const int* baudrate) {
+bool ComPort::openPort(const std::string& port, const int* baudrate) {
 
     closePort();
     wchar_t* wPort = convertToLPCTSTR(port);
@@ -42,7 +42,7 @@ bool Com_port::openPort(const std::string& port, const int* baudrate) {
     }
 }
 
-bool Com_port::installPortSettings(const int* baudrate) {
+bool ComPort::installPortSettings(const int* baudrate) {
     DCB PortDCB = { 0 };
     PortDCB.DCBlength = sizeof(DCB); // getting the default information of the DCB structure
     if (!GetCommState(cPort, &PortDCB)) {
@@ -64,7 +64,7 @@ bool Com_port::installPortSettings(const int* baudrate) {
     return true;
 }
 
-bool Com_port::installPortTimeouts() {
+bool ComPort::installPortTimeouts() {
     COMMTIMEOUTS CommTimeouts;
     if (!GetCommTimeouts(cPort, &CommTimeouts)) {
         //std::cout << "GetCommTimeouts failed with error %d.\n " << std::to_string(GetLastError());
@@ -85,7 +85,7 @@ bool Com_port::installPortTimeouts() {
     return true;
 }
 
-bool Com_port::closePort() {
+bool ComPort::closePort() {
     if (cPort != INVALID_HANDLE_VALUE) {
         CloseHandle(cPort);
         cPort = INVALID_HANDLE_VALUE;
@@ -95,7 +95,7 @@ bool Com_port::closePort() {
     return false;
 }
 
-bool Com_port::writeData(const char* data, const DWORD& dwSize) {
+bool ComPort::writeData(const char* data, const DWORD& dwSize) {
     DWORD dwBytesWritten;
     BOOL iRet = WriteFile(cPort, &data, dwSize, &dwBytesWritten, NULL);
     if (!iRet || dwBytesWritten != dwSize) {
@@ -107,7 +107,7 @@ bool Com_port::writeData(const char* data, const DWORD& dwSize) {
     return true;
 }
 
-bool Com_port::readData(char* dst, unsigned long& read) {
+bool ComPort::readData(char* dst, unsigned long& read) {
     const int READ_TIME = 100;
     OVERLAPPED sync = { 0 };
     int result = 0;
@@ -146,7 +146,7 @@ bool Com_port::readData(char* dst, unsigned long& read) {
     return true;
 }
 
-wchar_t* Com_port::convertToLPCTSTR(const std::string& str) {
+wchar_t* ComPort::convertToLPCTSTR(const std::string& str) {
     char* chars = new char[str.length() + 1];
     str.copy(chars, str.length());
     chars[str.length()] = '\0';
