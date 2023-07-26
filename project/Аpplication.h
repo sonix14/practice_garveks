@@ -33,7 +33,7 @@ namespace GUI {
 
 		sf::Text output;
 		output.setFont(font);
-		output.setCharacterSize(15);
+		output.setCharacterSize(20);
 		output.setFillColor(sf::Color::Black);
 		output.setPosition({ 750, 30 });
 
@@ -104,9 +104,17 @@ namespace GUI {
 		errorData.setStyle(sf::Text::Bold);
 		errorData.setPosition({ 50, 500 });
 
+		sf::Text infoText;
+		infoText.setFont(font);
+		infoText.setString("To continue, press 'Enter'.");
+		infoText.setCharacterSize(16);
+		infoText.setFillColor(sf::Color::Black);
+		infoText.setStyle(sf::Text::Bold);
+		infoText.setPosition({ 950, 480 });
+
 		sf::Text exitText;
 		exitText.setFont(font);
-		exitText.setString("Click 'Escape' to return to the main menu");
+		exitText.setString("Click 'Escape' to return to the main menu.");
 		exitText.setCharacterSize(16);
 		exitText.setFillColor(sf::Color::Black);
 		exitText.setStyle(sf::Text::Bold);
@@ -199,6 +207,9 @@ namespace GUI {
 										FTP protocol;
 										Observer obs(&protocol, &output, &window);
 										protocol.sendFile(portName, fullName);
+										window.draw(infoText);
+										window.display();
+										while (!sf::Keyboard::isKeyPressed(sf::Keyboard::Return));
 									}
 									else {
 										window.draw(errorData);
@@ -295,6 +306,7 @@ namespace GUI {
 										FTP protocol;
 										Observer obs(&protocol, &output, &window);
 										protocol.receiveFile(portName, fullPath, fileName);
+										while (!sf::Keyboard::isKeyPressed(sf::Keyboard::Return));
 									}
 									else {
 										window.draw(errorData);

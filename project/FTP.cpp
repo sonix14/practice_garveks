@@ -15,7 +15,7 @@ char REJECTION[1] = { 'n' };
 namespace fs = std::experimental::filesystem;
 
 void FTP::attach(IObserver* obs) {
-    views.push_back(obs);
+    viewer = obs;
 }
 
 void FTP::setState(std::string str) {
@@ -28,8 +28,7 @@ std::string FTP::getState() {
 }
 
 void FTP::notify() {
-    for (int i = 0; i < views.size(); i++)
-        views[i]->update();
+        viewer->update();
 }
 
 bool FTP::openConnection(const std::string& portName) {

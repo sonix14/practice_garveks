@@ -4,11 +4,11 @@
 #include <windows.h>
 #include <string>
 
-struct Com_port {
+struct ComPort {
     HANDLE cPort;
 
-    Com_port();
-    virtual ~Com_port();
+    ComPort();
+    virtual ~ComPort();
 
     bool openPort(const std::string& port, const int* baudrate);
     bool closePort();
