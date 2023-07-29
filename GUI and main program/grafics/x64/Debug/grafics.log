@@ -1,0 +1,46 @@
+﻿  FTP.cpp
+C:\Users\админ\source\repos\grafics\grafics\FTP.cpp(65,29): warning C4244: инициализация: преобразование "std::streamoff" в "unsigned long", возможна потеря данных
+C:\Users\админ\source\repos\grafics\grafics\FTP.cpp(70,34): warning C4267: =: преобразование из "size_t" в "DWORD"; возможна потеря данных
+C:\Users\админ\source\repos\grafics\grafics\FTP.cpp(80,102): warning C4267: инициализация: преобразование из "size_t" в "unsigned long"; возможна потеря данных
+C:\Users\админ\source\repos\grafics\grafics\FTP.cpp(88,38): warning C4267: =: преобразование из "size_t" в "DWORD"; возможна потеря данных
+C:\Users\админ\source\repos\grafics\grafics\FTP.cpp(134,42): warning C4267: =: преобразование из "size_t" в "DWORD"; возможна потеря данных
+C:\Users\админ\source\repos\grafics\grafics\FTP.cpp(168,38): warning C4267: =: преобразование из "size_t" в "DWORD"; возможна потеря данных
+C:\Users\админ\source\repos\grafics\grafics\FTP.cpp(219,30): warning C4244: =: преобразование "__int64" в "unsigned long", возможна потеря данных
+C:\Users\админ\source\repos\grafics\grafics\FTP.cpp(246,30): warning C4244: =: преобразование "__int64" в "unsigned long", возможна потеря данных
+C:\Users\админ\source\repos\grafics\grafics\FTP.cpp(257,31): warning C4018: <: несоответствие типов со знаком и без знака
+C:\Users\админ\source\repos\grafics\grafics\FTP.cpp(260,41): warning C4267: инициализация: преобразование из "size_t" в "int"; возможна потеря данных
+  main.cpp
+C:\Users\админ\source\repos\grafics\grafics\Button.h(14,24): warning C4244: =: преобразование "T" в "int", возможна потеря данных
+          with
+          [
+              T=float
+          ]
+C:\Users\админ\source\repos\grafics\grafics\Button.h(15,25): warning C4244: =: преобразование "T" в "int", возможна потеря данных
+          with
+          [
+              T=float
+          ]
+C:\Users\админ\source\repos\grafics\grafics\Button.h(38,14): warning C4244: инициализация: преобразование "double" в "float", возможна потеря данных
+C:\Users\админ\source\repos\grafics\grafics\Button.h(51,15): warning C4244: инициализация: преобразование "const T" в "int", возможна потеря данных
+          with
+          [
+              T=float
+          ]
+C:\Users\админ\source\repos\grafics\grafics\Button.h(52,15): warning C4244: инициализация: преобразование "const T" в "int", возможна потеря данных
+          with
+          [
+              T=float
+          ]
+C:\Users\админ\source\repos\grafics\grafics\Button.h(54,20): warning C4244: инициализация: преобразование "T" в "int", возможна потеря данных
+          with
+          [
+              T=float
+          ]
+C:\Users\админ\source\repos\grafics\grafics\Button.h(55,21): warning C4244: инициализация: преобразование "T" в "int", возможна потеря данных
+          with
+          [
+              T=float
+          ]
+  Создание кода...
+C:\Users\админ\source\repos\grafics\grafics\FTP.cpp(351): warning C4715: FTP::getAnswer: значение возвращается не при всех путях выполнения
+  grafics.vcxproj -> C:\Users\админ\source\repos\grafics\x64\Debug\grafics.exe
